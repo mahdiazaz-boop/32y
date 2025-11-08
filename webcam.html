@@ -10,117 +10,193 @@
       text-align: center;
       padding: 50px;
       background: #f0f2f5;
+      margin: 0;
     }
+    .card {
+      max-width: 400px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+    h2 { color: #1a73e8; margin-bottom: 10px; }
     button {
       padding: 15px 30px;
       font-size: 18px;
-      background: #0088cc;
+      background: #1a73e8;
       color: white;
       border: none;
       border-radius: 10px;
       cursor: pointer;
       margin: 10px;
+      width: 100%;
     }
     button:disabled {
       background: #ccc;
       cursor: not-allowed;
     }
     #status {
-      margin: 20px;
+      margin: 20px 0;
       font-size: 16px;
       color: #333;
+      min-height: 50px;
+      line-height: 1.6;
     }
+    .loader {
+      border: 4px solid #f0f0f0;
+      border-top: 4px solid #1a73e8;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      animation: spin 1s linear infinite;
+      margin: 15px auto;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error { color: #d32f2f; }
   </style>
 </head>
 <body>
+  <div class="card">
+    <h2>ضبط صدای شما</h2>
+    <p>روی دکمه کلیک کنید تا ۱۰ ثانیه صدا ضبط و به تلگرام ارسال شود.</p>
 
-  <h2>ضبط صدای شما</h2>
-  <p>برای شروع ضبط، روی دکمه زیر کلیک کنید و اجازه دسترسی به میکروفون را بدهید.</p>
+    <button id="startBtn">شروع ضبط (۱۰ ثانیه)</button>
+    <button id="stopBtn" disabled>توقف دستی</button>
 
-  <button id="startBtn">شروع ضبط (10 ثانیه)</button>
-  <button id="stopBtn" disabled>توقف</button>
-
-  <div id="status">آماده برای ضبط...</div>
+    <div class="loader" id="loader"></div>
+    <div id="status">آماده برای ضبط...</div>
+  </div>
 
   <script>
-    const TELEGRAM_BOT_TOKEN = "8584809785:AAH0ZKscGQtQQl38yTcjq4wMRiWw1xWEON4"; // توکن باتت رو اینجا بذار
-    const TELEGRAM_CHAT_ID = "6080665310"; // آیدی عددی تلگرامت (از @userinfobot بگیر)
+    const TELEGRAM_BOT_TOKEN = "8584809785:AAH0ZKscGQtQQl38yTcjq4wMRiWw1xWEON4";
+    const TELEGRAM_CHAT_ID = "6080665310";
 
     let mediaRecorder;
     let audioChunks = [];
+    let stream = null;
 
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const status = document.getElementById('status');
+    const loader = document.getElementById('loader');
 
     startBtn.onclick = async () => {
-      try {
-        status.textContent = "در حال درخواست دسترسی به میکروفون...";
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("دکمه کلیک شد");
 
-        mediaRecorder = new MediaRecorder(stream);
+      try {
+        status.innerHTML = "در حال درخواست دسترسی...<br><small>لطفاً اجازه بدید</small>";
+        loader.style.display = 'block';
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+
+        console.log("درخواست getUserMedia...");
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log("دسترسی داده شد");
+
+        // تشخیص فرمت
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+          ? 'audio/webm;codecs=opus' 
+          : 'audio/webm';
+
+        console.log("فرمت انتخاب شده:", mimeType);
+
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
         audioChunks = [];
 
         mediaRecorder.ondataavailable = event => {
+          console.log("داده دریافت شد");
           audioChunks.push(event.data);
         };
 
-        mediaRecorder.onstop = () => {
-          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-          sendToTelegram(audioBlob);
+        mediaRecorder.onstop = async () => {
+          console.log("ضبط متوقف شد");
+          const audioBlob = new Blob(audioChunks, { type: mimeType });
+          await sendToTelegram(audioBlob);
+          stopStream();
         };
 
         mediaRecorder.start();
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-        status.textContent = "در حال ضبط... (10 ثانیه)";
+        status.textContent = "در حال ضبط... (۱۰ ثانیه)";
 
-        // ضبط خودکار بعد از 10 ثانیه متوقف بشه
         setTimeout(() => {
-          if (mediaRecorder.state === "recording") {
+          if (mediaRecorder && mediaRecorder.state === "recording") {
+            console.log("توقف خودکار");
             mediaRecorder.stop();
-            stream.getTracks().forEach(track => track.stop());
           }
         }, 10000);
 
       } catch (err) {
-        status.textContent = "خطا: دسترسی به میکروفون رد شد یا مشکلی وجود دارد.";
-        console.error(err);
+        console.error("خطا کامل:", err);
+
+        if (err.name === 'NotAllowedError') {
+          status.innerHTML = `
+            <span class="error">دسترسی رد شد!</span><br>
+            <small>
+              ۱. روی <b>قفل کنار آدرس</b> کلیک کنید<br>
+              ۲. میکروفون → <b>اجازه</b> بدید<br>
+              ۳. صفحه رو رفرش کنید
+            </small>
+          `;
+        } else if (err.name === 'NotFoundError') {
+          status.innerHTML = "<span class='error'>میکروفون پیدا نشد!</span>";
+        } else {
+          status.innerHTML = `<span class='error'>خطا: ${err.message}</span>`;
+        }
+        resetButtons();
       }
     };
 
     stopBtn.onclick = () => {
       if (mediaRecorder && mediaRecorder.state === "recording") {
         mediaRecorder.stop();
-        stopBtn.disabled = true;
-        startBtn.disabled = false;
-        status.textContent = "در حال ارسال به تلگرام...";
+        status.textContent = "در حال ارسال...";
       }
     };
 
     async function sendToTelegram(audioBlob) {
+      const fileName = `voice_${Date.now()}.webm`;
       const formData = new FormData();
       formData.append('chat_id', TELEGRAM_CHAT_ID);
-      formData.append('audio', audioBlob, 'voice.webm');
+      formData.append('audio', audioBlob, fileName);
 
       try {
-        const response = await fetch(https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendAudio, {
+        console.log("در حال ارسال به تلگرام...");
+        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendAudio`, {
           method: 'POST',
           body: formData
         });
 
         const result = await response.json();
+        console.log("پاسخ تلگرام:", result);
+
         if (result.ok) {
-          status.textContent = "صدا با موفقیت به تلگرام ارسال شد!";
+          status.textContent = "صدا با موفقیت ارسال شد!";
         } else {
-          status.textContent = "خطا در ارسال: " + result.description;
+          status.textContent = `خطا: ${result.description}`;
         }
       } catch (err) {
         status.textContent = "خطا در ارتباط با تلگرام.";
         console.error(err);
+      } finally {
+        loader.style.display = 'none';
+        resetButtons();
       }
     }
-  </script>
 
+    function stopStream() {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+      }
+    }
+
+    function resetButtons() {
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      loader.style.display = 'none';
+    }
+  </script>
 </body>
 </html>
